@@ -10,8 +10,10 @@ import type {
   FAQ,
   OrderStatus,
   PaymentStatus,
+  Customer,
 } from '../../types';
 import { generateOrderNumber } from '../utils';
+import { hashPassword } from '../auth';
 
 // Helper to determine storage mode
 export function getStorageMode(): 'supabase' | 'local' {
@@ -1095,3 +1097,194 @@ export async function getDashboardOverview() {
     activeCampaign,
   };
 }
+
+// -------------------------------------------------------------
+// 8. CUSTOMER ACCOUNTS & DASHBOARD
+// -------------------------------------------------------------
+
+export async function createCustomer(data: {
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  address?: string;
+}): Promise<{ success: boolean; customer?: Customer; error?: string }> {
+  const db = getSQLiteDb();
+  const email = data.email.trim().toLowerCase();
+
+  // Validate
+  if (!data.name?.trim()) return { success: false, error: 'Nama lengkap wajib diisi.' };
+  if (!email || !email.includes('@')) return { success: false, error: 'Alamat email tidak valid.' };
+  if (!data.phone?.trim()) return { success: false, error: 'Nomor WhatsApp wajib diisi.' };
+  if (!data.password || data.password.length < 6) {
+    return { success: false, error: 'Kata sandi minimal 6 karakter.' };
+  }
+
+  // Check unique email
+  const existing = db.prepare('SELECT id FROM customers WHERE LOWER(email) = ?').get(email);
+  if (existing) {
+    return { success: false, error: 'Alamat email ini sudah terdaftar. Silakan masuk.' };
+  }
+
+  const id = `cust_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const passwordHash = hashPassword(data.password);
+  const now = new Date().toISOString();
+
+  db.prepare(`
+    INSERT INTO customers (id, name, email, phone, password_hash, address, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id,
+    data.name.trim(),
+    email,
+    data.phone.trim(),
+    passwordHash,
+    data.address?.trim() || '',
+    now,
+    now
+  );
+
+  const customer = await getCustomerById(id);
+  if (!customer) return { success: false, error: 'Gagal membuat akun pelanggan.' };
+  return { success: true, customer };
+}
+
+export async function verifyCustomer(
+  emailInput: string,
+  passwordInput: string
+): Promise<{ success: boolean; customer?: Customer; error?: string }> {
+  const db = getSQLiteDb();
+  const email = emailInput.trim().toLowerCase();
+
+  const row = db.prepare('SELECT * FROM customers WHERE LOWER(email) = ?').get(email) as any;
+  if (!row) {
+    return { success: false, error: 'Email atau kata sandi tidak sesuai.' };
+  }
+
+  const hash = hashPassword(passwordInput);
+  if (hash !== row.password_hash) {
+    return { success: false, error: 'Email atau kata sandi tidak sesuai.' };
+  }
+
+  return {
+    success: true,
+    customer: {
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      phone: row.phone,
+      address: row.address || '',
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    },
+  };
+}
+
+export async function getCustomerById(id: string): Promise<Customer | null> {
+  const db = getSQLiteDb();
+  const row = db.prepare('SELECT * FROM customers WHERE id = ?').get(id) as any;
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    phone: row.phone,
+    address: row.address || '',
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+export async function getCustomerByEmail(email: string): Promise<Customer | null> {
+  const db = getSQLiteDb();
+  const row = db.prepare('SELECT * FROM customers WHERE LOWER(email) = ?').get(email.trim().toLowerCase()) as any;
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    phone: row.phone,
+    address: row.address || '',
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+export async function updateCustomerProfile(
+  id: string,
+  updates: { name?: string; phone?: string; address?: string }
+): Promise<Customer | null> {
+  const db = getSQLiteDb();
+  const existing = await getCustomerById(id);
+  if (!existing) return null;
+
+  const now = new Date().toISOString();
+  const name = updates.name !== undefined ? updates.name.trim() : existing.name;
+  const phone = updates.phone !== undefined ? updates.phone.trim() : existing.phone;
+  const address = (updates.address !== undefined ? updates.address.trim() : existing.address) || '';
+
+  db.prepare(`
+    UPDATE customers SET name = ?, phone = ?, address = ?, updated_at = ? WHERE id = ?
+  `).run(name, phone, address, now, id);
+
+  return getCustomerById(id);
+}
+
+export async function getCustomerOrders(customerId: string, phone?: string): Promise<Order[]> {
+  const db = getSQLiteDb();
+  let sql = 'SELECT * FROM orders WHERE 1=1';
+  const params: any[] = [];
+
+  if (phone && phone.trim()) {
+    const cleanPhone = phone.trim().replace(/\D/g, '');
+    const partialPhone = cleanPhone.slice(-8); // match last 8 digits
+    sql += ' AND (customer_whatsapp LIKE ? OR customer_whatsapp = ?)';
+    params.push(`%${partialPhone}%`, phone.trim());
+  }
+
+  sql += ' ORDER BY created_at DESC LIMIT 50';
+
+  const orderRows = db.prepare(sql).all(...params) as any[];
+  const itemStmt = db.prepare('SELECT * FROM order_items WHERE order_id = ? ORDER BY created_at ASC');
+
+  return orderRows.map((o) => {
+    const rawItems = itemStmt.all(o.id) as any[];
+    const items: OrderItem[] = rawItems.map((it) => ({
+      id: it.id,
+      order_id: it.order_id,
+      product_id: it.product_id,
+      product_name: it.product_name,
+      variant_id: it.variant_id,
+      variant_name: it.variant_name,
+      unit_price: Number(it.unit_price),
+      quantity: Number(it.quantity),
+      total_price: Number(it.total_price),
+      created_at: it.created_at,
+    }));
+
+    return {
+      id: o.id,
+      order_number: o.order_number,
+      customer_name: o.customer_name,
+      customer_whatsapp: o.customer_whatsapp,
+      order_type: o.order_type,
+      delivery_address: o.delivery_address || '',
+      fulfillment_date: o.fulfillment_date,
+      fulfillment_time_slot: o.fulfillment_time_slot,
+      customer_notes: o.customer_notes || '',
+      subtotal: Number(o.subtotal),
+      delivery_fee: Number(o.delivery_fee),
+      total_amount: Number(o.total_amount),
+      payment_method_id: o.payment_method_id,
+      payment_method_name: o.payment_method_name,
+      order_status: o.order_status,
+      payment_status: o.payment_status,
+      internal_notes: o.internal_notes || '',
+      cancellation_reason: o.cancellation_reason || '',
+      created_at: o.created_at,
+      updated_at: o.updated_at,
+      items,
+    };
+  });
+}
+

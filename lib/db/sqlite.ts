@@ -186,6 +186,17 @@ function initSchemaAndSeed(db: DatabaseSync) {
       created_at TEXT,
       updated_at TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS customers (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      phone TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      address TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
   `);
 
   // Check if business_settings has data; if not, seed initial data

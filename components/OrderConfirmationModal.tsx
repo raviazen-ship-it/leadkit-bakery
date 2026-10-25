@@ -22,51 +22,66 @@ import {
 import { useCart } from '@/context/CartContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { formatWhatsAppNumber, createWhatsAppOrderMessage } from '@/lib/utils';
-import { BusinessSettings } from '@/types';
+import { BusinessSettings, Order } from '@/types';
 
 interface OrderConfirmationModalProps {
   settings?: BusinessSettings;
+  order?: Order | null;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export default function OrderConfirmationModal({ settings }: OrderConfirmationModalProps) {
+export default function OrderConfirmationModal({
+  settings,
+  order,
+  isOpen,
+  onClose,
+}: OrderConfirmationModalProps) {
   const { completedOrder, setCompletedOrder } = useCart();
+  const activeOrder = order || completedOrder;
   const { t, formatMoney, language } = useLanguage();
   const [copiedAccount, setCopiedAccount] = useState(false);
   const [copiedOrderNumber, setCopiedOrderNumber] = useState(false);
 
-  if (!completedOrder) return null;
+  if (isOpen !== undefined && !isOpen) return null;
+  if (!activeOrder) return null;
+
+  const handleClose = () => {
+    if (onClose) onClose();
+    setCompletedOrder(null);
+  };
 
   const targetWhatsapp = settings?.whatsapp_number || '6281234567890';
   const cleanTargetWa = formatWhatsAppNumber(targetWhatsapp);
 
   // Is this an online payment gateway order?
   const isGatewayOrder =
-    completedOrder.payment_method_id === 'gateway_stripe' ||
-    completedOrder.payment_method_id?.startsWith('gateway_') ||
-    completedOrder.payment_status === 'Dibayar' ||
-    (completedOrder as any).transaction_id;
+    activeOrder.payment_method_id === 'gateway_stripe' ||
+    activeOrder.payment_method_id?.startsWith('gateway_') ||
+    activeOrder.payment_status === 'Dibayar' ||
+    (activeOrder as any).transaction_id;
 
   const transactionRef =
-    (completedOrder as any).transaction_id ||
-    (completedOrder.customer_notes?.match(/TXN_[A-Z0-9_]+/)?.[0]) ||
+    (activeOrder as any).transaction_id ||
+    (activeOrder.customer_notes?.match(/TXN_[A-Z0-9_]+/)?.[0]) ||
     'TXN_STRIPE_98A41E';
 
   // Generate WhatsApp prefilled message
   const waEncodedMsg = createWhatsAppOrderMessage({
-    order_number: completedOrder.order_number,
-    customer_name: completedOrder.customer_name,
-    order_type: completedOrder.order_type,
-    fulfillment_date: completedOrder.fulfillment_date,
-    fulfillment_time_slot: completedOrder.fulfillment_time_slot,
-    delivery_address: completedOrder.delivery_address,
-    customer_notes: completedOrder.customer_notes,
-    subtotal: completedOrder.subtotal,
-    delivery_fee: completedOrder.delivery_fee,
-    total_amount: completedOrder.total_amount,
+    order_number: activeOrder.order_number,
+    customer_name: activeOrder.customer_name,
+    order_type: activeOrder.order_type,
+    fulfillment_date: activeOrder.fulfillment_date,
+    fulfillment_time_slot: activeOrder.fulfillment_time_slot,
+    delivery_address: activeOrder.delivery_address,
+    customer_notes: activeOrder.customer_notes,
+    subtotal: activeOrder.subtotal,
+    delivery_fee: activeOrder.delivery_fee,
+    total_amount: activeOrder.total_amount,
     payment_method_name: isGatewayOrder
       ? 'Online Payment Gateway (Paid & Verified)'
-      : completedOrder.payment_method_name,
-    items: completedOrder.items?.map((it) => ({
+      : activeOrder.payment_method_name,
+    items: activeOrder.items?.map((it) => ({
       product_name: it.product_name,
       variant_name: it.variant_name,
       quantity: it.quantity,
@@ -79,7 +94,7 @@ export default function OrderConfirmationModal({ settings }: OrderConfirmationMo
 
   // Find payment info for manual method
   const paymentMethod = settings?.payment_methods?.find(
-    (p) => p.id === completedOrder.payment_method_id
+    (p) => p.id === activeOrder.payment_method_id
   );
 
   const handleCopyAccount = (accountNum: string) => {
@@ -108,7 +123,7 @@ export default function OrderConfirmationModal({ settings }: OrderConfirmationMo
           <div className="absolute -bottom-12 -right-12 w-32 h-32 rounded-full bg-caramel-500/20 blur-2xl pointer-events-none" />
 
           <button
-            onClick={() => setCompletedOrder(null)}
+            onClick={handleClose}
             className="absolute top-4 right-4 p-1.5 rounded-full text-cream-100/70 hover:text-cream-100 hover:bg-cocoa-800 transition-colors"
             aria-label="Close"
           >
@@ -155,11 +170,11 @@ export default function OrderConfirmationModal({ settings }: OrderConfirmationMo
                 {t.confirmation.orderNumber}
               </span>
               <span className="font-mono text-base font-bold text-cocoa-900">
-                {completedOrder.order_number}
+                {activeOrder.order_number}
               </span>
             </div>
             <button
-              onClick={() => handleCopyOrderNumber(completedOrder.order_number)}
+              onClick={() => handleCopyOrderNumber(activeOrder.order_number)}
               className="px-3 py-1.5 rounded-xl border border-oat-300 hover:bg-oat-100 text-xs font-semibold text-cocoa-800 flex items-center gap-1.5 transition-colors shadow-sm"
             >
               {copiedOrderNumber ? (
@@ -239,15 +254,15 @@ export default function OrderConfirmationModal({ settings }: OrderConfirmationMo
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-caramel-600 shrink-0" />
               <span>
-                <strong>{t.confirmation.schedule}</strong> {completedOrder.fulfillment_date} ({completedOrder.fulfillment_time_slot})
+                <strong>{t.confirmation.schedule}</strong> {activeOrder.fulfillment_date} ({activeOrder.fulfillment_time_slot})
               </span>
             </div>
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-caramel-600 shrink-0" />
               <span>
                 <strong>{t.confirmation.method}</strong>{' '}
-                {completedOrder.order_type === 'delivery'
-                  ? `${t.checkout.delivery}: ${completedOrder.delivery_address}`
+                {activeOrder.order_type === 'delivery'
+                  ? `${t.checkout.delivery}: ${activeOrder.delivery_address}`
                   : `${t.checkout.pickup} (Aura Bakery Counter)`}
               </span>
             </div>
@@ -256,7 +271,7 @@ export default function OrderConfirmationModal({ settings }: OrderConfirmationMo
               <span>
                 <strong>{t.confirmation.status}</strong>{' '}
                 <span className="inline-block px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-300">
-                  {isGatewayOrder ? 'Confirmed & Paid' : `${completedOrder.order_status} (${completedOrder.payment_status})`}
+                  {isGatewayOrder ? 'Confirmed & Paid' : `${activeOrder.order_status} (${activeOrder.payment_status})`}
                 </span>
               </span>
             </div>
@@ -279,7 +294,7 @@ export default function OrderConfirmationModal({ settings }: OrderConfirmationMo
             </div>
 
             <div className="divide-y divide-oat-100 text-xs">
-              {completedOrder.items?.map((it) => (
+              {activeOrder.items?.map((it) => (
                 <div key={it.id} className="py-2 flex justify-between items-center">
                   <div>
                     <span className="font-semibold text-cocoa-800">{it.product_name}</span>
@@ -297,15 +312,15 @@ export default function OrderConfirmationModal({ settings }: OrderConfirmationMo
             <div className="space-y-1 pt-2 border-t border-oat-100 text-xs">
               <div className="flex justify-between text-espresso-900/70">
                 <span>{t.cart.subtotal}</span>
-                <span>{formatMoney(completedOrder.subtotal)}</span>
+                <span>{formatMoney(activeOrder.subtotal)}</span>
               </div>
               <div className="flex justify-between text-espresso-900/70">
                 <span>{t.checkout.summaryDelivery}</span>
-                <span>{formatMoney(completedOrder.delivery_fee)}</span>
+                <span>{formatMoney(activeOrder.delivery_fee)}</span>
               </div>
               <div className="flex justify-between font-serif text-sm font-bold text-cocoa-900 pt-1 border-t border-oat-200">
                 <span>{t.checkout.grandTotal}</span>
-                <span>{formatMoney(completedOrder.total_amount)}</span>
+                <span>{formatMoney(activeOrder.total_amount)}</span>
               </div>
             </div>
           </div>
@@ -353,7 +368,7 @@ export default function OrderConfirmationModal({ settings }: OrderConfirmationMo
             </a>
 
             <button
-              onClick={() => setCompletedOrder(null)}
+              onClick={handleClose}
               className="w-full py-3 rounded-xl border border-oat-300 text-cocoa-800 font-medium hover:bg-oat-100 transition-colors text-xs"
             >
               {t.confirmation.closeBtn}

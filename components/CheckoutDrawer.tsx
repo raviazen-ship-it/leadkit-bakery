@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   ArrowLeft,
@@ -66,6 +66,26 @@ export default function CheckoutDrawer({ settings }: CheckoutDrawerProps) {
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Pre-fill logged in customer profile
+  useEffect(() => {
+    async function loadCustomerProfile() {
+      try {
+        const res = await fetch('/api/customer/session');
+        const data = await res.json();
+        if (data.success && data.customer) {
+          setCustomerName((prev) => prev || data.customer.name || '');
+          setCustomerWhatsapp((prev) => prev || data.customer.phone || '');
+          setDeliveryAddress((prev) => prev || data.customer.address || '');
+        }
+      } catch {
+        // Guest user checkout continues normally
+      }
+    }
+    if (isCheckoutOpen) {
+      loadCustomerProfile();
+    }
+  }, [isCheckoutOpen]);
 
   if (!isCheckoutOpen) return null;
 

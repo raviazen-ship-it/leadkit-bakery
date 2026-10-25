@@ -31,6 +31,10 @@ export default function AdminPesananPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
+  // Live Auto Polling State
+  const [isLiveSync, setIsLiveSync] = useState(true);
+  const [lastSynced, setLastSynced] = useState<Date>(new Date());
+
   // Detail Modal State
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [updating, setUpdating] = useState(false);
@@ -43,9 +47,9 @@ export default function AdminPesananPage() {
   const [modalInternalNotes, setModalInternalNotes] = useState('');
   const [modalCancelReason, setModalCancelReason] = useState('');
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const params = new URLSearchParams();
       if (statusFilter !== 'all') params.append('status', statusFilter);
       if (paymentFilter !== 'all') params.append('paymentStatus', paymentFilter);
@@ -57,17 +61,50 @@ export default function AdminPesananPage() {
       const data = await res.json();
       if (data.success) {
         setOrders(data.orders || []);
+        setLastSynced(new Date());
       }
     } catch (err) {
       console.error('Failed to fetch orders:', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchOrders();
   }, [statusFilter, paymentFilter, startDate, endDate]);
+
+  // Periodic Polling
+  useEffect(() => {
+    if (!isLiveSync) return;
+    const interval = setInterval(() => {
+      fetchOrders(true);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [isLiveSync, statusFilter, paymentFilter, search, startDate, endDate]);
+
+  const handleQuickTransition = async (
+    orderId: string,
+    newOrderStatus?: OrderStatus,
+    newPaymentStatus?: PaymentStatus
+  ) => {
+    try {
+      const body: any = {};
+      if (newOrderStatus) body.order_status = newOrderStatus;
+      if (newPaymentStatus) body.payment_status = newPaymentStatus;
+
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        fetchOrders(true);
+      }
+    } catch (err) {
+      console.error('Quick transition failed:', err);
+    }
+  };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,14 +220,34 @@ export default function AdminPesananPage() {
           </p>
         </div>
 
-        <button
-          onClick={handleExportCSV}
-          disabled={orders.length === 0}
-          className="px-4 py-2.5 rounded-xl border border-oat-300 bg-white hover:bg-oat-100 text-cocoa-800 text-xs font-semibold flex items-center gap-2 shadow-sm transition-colors self-start sm:self-auto disabled:opacity-50"
-        >
-          <Download className="w-4 h-4 text-caramel-600" />
-          <span>Ekspor CSV ({orders.length})</span>
-        </button>
+        <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+          <button
+            type="button"
+            onClick={() => setIsLiveSync(!isLiveSync)}
+            className={`px-3 py-2 rounded-xl border text-xs font-semibold flex items-center gap-2 transition-all shadow-xs ${
+              isLiveSync
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                : 'bg-white border-oat-300 text-espresso-900/60 hover:bg-oat-100'
+            }`}
+            title="Sinkronisasi antrean dapur real-time"
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                isLiveSync ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'
+              }`}
+            />
+            <span>{isLiveSync ? '🟢 Live Kitchen (10s)' : '⚪ Live Kitchen (Off)'}</span>
+          </button>
+
+          <button
+            onClick={handleExportCSV}
+            disabled={orders.length === 0}
+            className="px-4 py-2.5 rounded-xl border border-oat-300 bg-white hover:bg-oat-100 text-cocoa-800 text-xs font-semibold flex items-center gap-2 shadow-sm transition-colors disabled:opacity-50"
+          >
+            <Download className="w-4 h-4 text-caramel-600" />
+            <span>Ekspor CSV ({orders.length})</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter & Search Bar */}
@@ -344,7 +401,21 @@ export default function AdminPesananPage() {
                         {formatRupiah(o.total_amount)}
                       </td>
                       <td className="py-4 px-4">
-                        <span className="inline-block px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                        <span
+                          className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+                            o.order_status === 'Baru'
+                              ? 'bg-amber-100 text-amber-800 border-amber-300'
+                              : o.order_status === 'Diproses'
+                              ? 'bg-blue-100 text-blue-800 border-blue-300'
+                              : o.order_status === 'Siap Diambil/Dikirim'
+                              ? 'bg-purple-100 text-purple-800 border-purple-300'
+                              : o.order_status === 'Selesai'
+                              ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                              : o.order_status === 'Dibatalkan'
+                              ? 'bg-red-100 text-red-800 border-red-300'
+                              : 'bg-oat-200 text-cocoa-800 border-oat-300'
+                          }`}
+                        >
                           {o.order_status}
                         </span>
                       </td>
@@ -360,12 +431,50 @@ export default function AdminPesananPage() {
                         </span>
                       </td>
                       <td className="py-4 px-4 text-center">
-                        <button
-                          onClick={() => openDetailModal(o)}
-                          className="px-3 py-1.5 rounded-lg bg-cocoa-800 hover:bg-cocoa-900 text-cream-100 font-semibold text-[11px] transition-colors"
-                        >
-                          Kelola
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                          {(o.order_status === 'Baru' || o.order_status === 'Menunggu Konfirmasi') && (
+                            <button
+                              onClick={() => handleQuickTransition(o.id, 'Diproses')}
+                              className="px-2 py-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[10px] transition-colors shadow-xs"
+                              title="Mulai produksi di dapur"
+                            >
+                              🍳 Dapur
+                            </button>
+                          )}
+                          {(o.order_status === 'Diproses' || o.order_status === 'Dikonfirmasi') && (
+                            <button
+                              onClick={() => handleQuickTransition(o.id, 'Siap Diambil/Dikirim')}
+                              className="px-2 py-1 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold text-[10px] transition-colors shadow-xs"
+                              title="Selesai baking, siap kirim/ambil"
+                            >
+                              📦 Siap
+                            </button>
+                          )}
+                          {o.order_status === 'Siap Diambil/Dikirim' && (
+                            <button
+                              onClick={() => handleQuickTransition(o.id, 'Selesai')}
+                              className="px-2 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-[10px] transition-colors shadow-xs"
+                              title="Tandai pesanan selesai"
+                            >
+                              ✅ Selesai
+                            </button>
+                          )}
+                          {o.payment_status !== 'Dibayar' && (
+                            <button
+                              onClick={() => handleQuickTransition(o.id, undefined, 'Dibayar')}
+                              className="px-2 py-1 rounded-md bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-[10px] transition-colors shadow-xs"
+                              title="Verifikasi lunas"
+                            >
+                              💳 Lunas
+                            </button>
+                          )}
+                          <button
+                            onClick={() => openDetailModal(o)}
+                            className="px-2.5 py-1 rounded-md bg-cocoa-800 hover:bg-cocoa-900 text-cream-100 font-semibold text-[11px] transition-colors"
+                          >
+                            Kelola
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -399,22 +508,68 @@ export default function AdminPesananPage() {
                     <span>{o.fulfillment_time_slot}</span>
                   </div>
 
-                  <div className="flex items-center justify-between pt-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                  <div className="flex items-center justify-between pt-1 flex-wrap gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                          o.order_status === 'Baru'
+                            ? 'bg-amber-100 text-amber-800 border-amber-300'
+                            : o.order_status === 'Diproses'
+                            ? 'bg-blue-100 text-blue-800 border-blue-300'
+                            : o.order_status === 'Siap Diambil/Dikirim'
+                            ? 'bg-purple-100 text-purple-800 border-purple-300'
+                            : o.order_status === 'Selesai'
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                            : o.order_status === 'Dibatalkan'
+                            ? 'bg-red-100 text-red-800 border-red-300'
+                            : 'bg-oat-200 text-cocoa-800 border-oat-300'
+                        }`}
+                      >
                         {o.order_status}
                       </span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cream-200 text-cocoa-800 border border-oat-300">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                          o.payment_status === 'Dibayar'
+                            ? 'bg-green-100 text-green-800 border-green-200'
+                            : 'bg-cream-200 text-cocoa-800 border-oat-300'
+                        }`}
+                      >
                         {o.payment_status}
                       </span>
                     </div>
 
-                    <button
-                      onClick={() => openDetailModal(o)}
-                      className="px-3 py-1.5 rounded-lg bg-cocoa-800 text-cream-100 font-semibold text-xs"
-                    >
-                      Kelola Detail
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      {(o.order_status === 'Baru' || o.order_status === 'Menunggu Konfirmasi') && (
+                        <button
+                          onClick={() => handleQuickTransition(o.id, 'Diproses')}
+                          className="px-2 py-1 rounded-md bg-blue-600 text-white font-semibold text-[10px]"
+                        >
+                          🍳 Dapur
+                        </button>
+                      )}
+                      {(o.order_status === 'Diproses' || o.order_status === 'Dikonfirmasi') && (
+                        <button
+                          onClick={() => handleQuickTransition(o.id, 'Siap Diambil/Dikirim')}
+                          className="px-2 py-1 rounded-md bg-purple-600 text-white font-semibold text-[10px]"
+                        >
+                          📦 Siap
+                        </button>
+                      )}
+                      {o.order_status === 'Siap Diambil/Dikirim' && (
+                        <button
+                          onClick={() => handleQuickTransition(o.id, 'Selesai')}
+                          className="px-2 py-1 rounded-md bg-emerald-600 text-white font-semibold text-[10px]"
+                        >
+                          ✅ Selesai
+                        </button>
+                      )}
+                      <button
+                        onClick={() => openDetailModal(o)}
+                        className="px-3 py-1.5 rounded-lg bg-cocoa-800 text-cream-100 font-semibold text-xs"
+                      >
+                        Kelola Detail
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

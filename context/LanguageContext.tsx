@@ -24,9 +24,9 @@ export function convertIdrToUsd(amountIdr: number): number {
 }
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  // Default to 'en' (English) as requested by user
-  const [language, setLanguageState] = useState<Language>('en');
-  const [currency, setCurrencyState] = useState<Currency>('USD');
+  // Default to 'id' (Bahasa Indonesia & IDR) for Indonesian bakery market, with 1-click EN switch
+  const [language, setLanguageState] = useState<Language>('id');
+  const [currency, setCurrencyState] = useState<Currency>('IDR');
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {

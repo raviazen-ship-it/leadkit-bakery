@@ -97,14 +97,6 @@ export default function AdminLoginPage() {
             </div>
           </div>
 
-          {/* Quick Onboarding Helper Note */}
-          <div className="p-3 rounded-xl bg-oat-100 border border-oat-200 text-[11px] text-cocoa-800 space-y-1">
-            <span className="font-bold block">💡 Info Pengujian Lokal:</span>
-            <span className="block text-espresso-900/80">
-              Password default admin untuk pengujian: <code className="bg-white px-1.5 py-0.5 rounded border border-oat-300 font-mono font-bold text-cocoa-900">admin123456</code>
-            </span>
-          </div>
-
           <button
             type="submit"
             disabled={loading}

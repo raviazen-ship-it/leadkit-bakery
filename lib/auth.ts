@@ -2,12 +2,21 @@ import crypto from 'crypto';
 import { cookies, headers } from 'next/headers';
 
 const SESSION_COOKIE_NAME = 'bakery_admin_session';
+const CUSTOMER_COOKIE_NAME = 'bakery_customer_session';
 const SECRET = process.env.JWT_SECRET || 'leadkit_bakery_secure_session_token_key_2026';
 const DEFAULT_PASSWORD = process.env.ADMIN_DEFAULT_PASSWORD || 'admin123456';
 
 export interface AdminSession {
   role: 'admin';
   username: string;
+  expiresAt: number;
+}
+
+export interface CustomerSession {
+  role: 'customer';
+  customerId: string;
+  name: string;
+  email: string;
   expiresAt: number;
 }
 
@@ -114,3 +123,93 @@ export async function clearAdminSessionCookie() {
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE_NAME);
 }
+
+// -------------------------------------------------------------
+// CUSTOMER AUTHENTICATION
+// -------------------------------------------------------------
+
+/**
+ * Create a signed customer session token (valid for 30 days)
+ */
+export function createCustomerSessionToken(customer: { id: string; name: string; email: string }): string {
+  const session: CustomerSession = {
+    role: 'customer',
+    customerId: customer.id,
+    name: customer.name,
+    email: customer.email,
+    expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
+  };
+
+  const payloadStr = Buffer.from(JSON.stringify(session)).toString('base64url');
+  const signature = signPayload(payloadStr);
+  return `${payloadStr}.${signature}`;
+}
+
+/**
+ * Verify customer session token
+ */
+export function verifyCustomerSessionToken(token: string | undefined): CustomerSession | null {
+  if (!token) return null;
+
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 2) return null;
+
+    const [payloadStr, signature] = parts;
+    const expectedSig = signPayload(payloadStr);
+
+    if (signature !== expectedSig) return null;
+
+    const json = Buffer.from(payloadStr, 'base64url').toString('utf-8');
+    const session: CustomerSession = JSON.parse(json);
+
+    if (session.role !== 'customer' || session.expiresAt < Date.now()) {
+      return null;
+    }
+
+    return session;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Server-side check if current request has authenticated customer session
+ */
+export async function getCustomerSession(): Promise<CustomerSession | null> {
+  const cookieStore = await cookies();
+  let token = cookieStore.get(CUSTOMER_COOKIE_NAME)?.value;
+
+  if (!token) {
+    const headerList = await headers();
+    const authHeader = headerList.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    }
+  }
+
+  return verifyCustomerSessionToken(token);
+}
+
+/**
+ * Set customer session cookie
+ */
+export async function setCustomerSessionCookie(token: string) {
+  const cookieStore = await cookies();
+  cookieStore.set(CUSTOMER_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: false,
+    sameSite: 'lax',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    path: '/',
+  });
+}
+
+/**
+ * Remove customer session cookie (logout)
+ */
+export async function clearCustomerSessionCookie() {
+  const cookieStore = await cookies();
+  cookieStore.delete(CUSTOMER_COOKIE_NAME);
+}
+

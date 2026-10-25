@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ShoppingBag, Menu, X, ArrowRight, Store, Globe } from 'lucide-react';
+import { ShoppingBag, Menu, X, ArrowRight, Store, Globe, User } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { BusinessSettings } from '@/types';
@@ -106,6 +106,15 @@ export default function Navbar({ settings }: NavbarProps) {
               <span>{language === 'en' ? '🇺🇸 EN ($)' : '🇮🇩 ID (Rp)'}</span>
             </button>
 
+            {/* User Account / Profile Button */}
+            <Link
+              href="/akun"
+              title="Akun & Status Pesanan Pelanggan"
+              className="p-2.5 rounded-full hover:bg-oat-200 text-cocoa-800 transition-colors flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-caramel-500"
+            >
+              <User className="w-5 h-5" />
+            </Link>
+
             {/* Cart Button */}
             <button
               onClick={openCart}
@@ -161,6 +170,18 @@ export default function Navbar({ settings }: NavbarProps) {
               </Link>
             );
           })}
+          <Link
+            href="/akun"
+            onClick={() => setMobileMenuOpen(false)}
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl text-base font-medium transition-colors ${
+              pathname === '/akun' || pathname === '/login'
+                ? 'bg-oat-200 text-caramel-700 font-semibold'
+                : 'text-espresso-900 hover:bg-oat-100'
+            }`}
+          >
+            <User className="w-4 h-4 text-caramel-600" />
+            <span>Akun Pelanggan & Lacak Pesanan</span>
+          </Link>
           <div className="pt-2 flex flex-col gap-2">
             <button
               onClick={toggleLanguage}
