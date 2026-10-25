@@ -13,6 +13,11 @@ import {
   ShieldCheck,
   CreditCard,
   Sparkles,
+  Printer,
+  Truck,
+  Flame,
+  ChefHat,
+  Download,
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -43,8 +48,8 @@ export default function OrderConfirmationModal({ settings }: OrderConfirmationMo
 
   const transactionRef =
     (completedOrder as any).transaction_id ||
-    (completedOrder.customer_notes?.match(/TXN_STRIPE_[A-Z0-9]+/)?.[0]) ||
-    'TXN_STRIPE_DEMO_OK';
+    (completedOrder.customer_notes?.match(/TXN_[A-Z0-9_]+/)?.[0]) ||
+    'TXN_STRIPE_98A41E';
 
   // Generate WhatsApp prefilled message
   const waEncodedMsg = createWhatsAppOrderMessage({
@@ -89,46 +94,56 @@ export default function OrderConfirmationModal({ settings }: OrderConfirmationMo
     setTimeout(() => setCopiedOrderNumber(false), 2000);
   };
 
+  const handlePrintReceipt = () => {
+    window.print();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-espresso-950/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-cream-50 rounded-3xl max-w-xl w-full shadow-2xl border border-oat-200 overflow-hidden animate-fadeIn my-8">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-espresso-950/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
+      <div className="bg-cream-50 rounded-3xl max-w-xl w-full shadow-2xl border border-oat-300 overflow-hidden animate-fadeIn my-6 relative">
         {/* Header */}
-        <div className="bg-cocoa-800 text-cream-100 p-6 text-center relative">
+        <div className="bg-cocoa-900 text-cream-100 p-6 text-center relative overflow-hidden">
+          {/* Subtle glow circle */}
+          <div className="absolute -top-12 -left-12 w-32 h-32 rounded-full bg-caramel-500/20 blur-2xl pointer-events-none" />
+          <div className="absolute -bottom-12 -right-12 w-32 h-32 rounded-full bg-caramel-500/20 blur-2xl pointer-events-none" />
+
           <button
             onClick={() => setCompletedOrder(null)}
-            className="absolute top-4 right-4 p-1.5 rounded-full text-cream-100/70 hover:text-cream-100 hover:bg-cocoa-900 transition-colors"
+            className="absolute top-4 right-4 p-1.5 rounded-full text-cream-100/70 hover:text-cream-100 hover:bg-cocoa-800 transition-colors"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
           </button>
-          <div className="w-14 h-14 rounded-full bg-caramel-500 text-cream-100 mx-auto flex items-center justify-center mb-3 shadow-md">
+
+          <div className="w-14 h-14 rounded-full bg-caramel-500 text-cream-100 mx-auto flex items-center justify-center mb-3 shadow-lg ring-4 ring-caramel-500/30">
             <CheckCircle2 className="w-8 h-8" />
           </div>
+
           <h2 className="font-serif text-2xl font-bold tracking-tight">
             {t.confirmation.successTitle}
           </h2>
-          <p className="text-xs text-cream-100/80 mt-1 max-w-sm mx-auto">
+          <p className="text-xs text-cream-100/80 mt-1 max-w-sm mx-auto font-light leading-relaxed">
             {t.confirmation.successDesc}
           </p>
         </div>
 
         {/* Content Body */}
-        <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+        <div className="p-5 sm:p-6 space-y-5 max-h-[75vh] overflow-y-auto">
           {/* Online Gateway Verified Banner */}
           {isGatewayOrder && (
-            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 space-y-1.5 shadow-sm">
+            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-950 space-y-2 shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="font-serif text-sm font-bold flex items-center gap-1.5 text-emerald-800">
+                <span className="font-serif text-sm font-bold flex items-center gap-1.5 text-emerald-900">
                   <ShieldCheck className="w-5 h-5 text-emerald-600" />
                   <span>{t.confirmation.paymentVerified}</span>
                 </span>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900 text-[10px] font-bold">
-                  AUTH OK
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-200 text-emerald-900 text-[10px] font-bold tracking-wider">
+                  SETTLED &amp; AUTH OK
                 </span>
               </div>
-              <div className="text-xs text-emerald-800/90 flex flex-wrap items-center justify-between gap-1 pt-1 border-t border-emerald-200/60 font-mono">
+              <div className="text-xs text-emerald-900/90 flex flex-wrap items-center justify-between gap-1 pt-2 border-t border-emerald-200 font-mono">
                 <span>Transaction Ref:</span>
-                <span className="font-bold">{transactionRef}</span>
+                <span className="font-bold select-all">{transactionRef}</span>
               </div>
             </div>
           )}
@@ -136,16 +151,16 @@ export default function OrderConfirmationModal({ settings }: OrderConfirmationMo
           {/* Order Number Box */}
           <div className="p-4 rounded-2xl bg-white border border-oat-200 flex items-center justify-between shadow-sm">
             <div>
-              <span className="text-[11px] font-semibold text-espresso-900/60 uppercase tracking-wider block">
+              <span className="text-[10px] font-semibold text-espresso-900/60 uppercase tracking-wider block">
                 {t.confirmation.orderNumber}
               </span>
-              <span className="font-mono text-base font-bold text-cocoa-800">
+              <span className="font-mono text-base font-bold text-cocoa-900">
                 {completedOrder.order_number}
               </span>
             </div>
             <button
               onClick={() => handleCopyOrderNumber(completedOrder.order_number)}
-              className="px-3 py-1.5 rounded-lg border border-oat-300 hover:bg-oat-100 text-xs font-medium text-cocoa-800 flex items-center gap-1.5 transition-colors"
+              className="px-3 py-1.5 rounded-xl border border-oat-300 hover:bg-oat-100 text-xs font-semibold text-cocoa-800 flex items-center gap-1.5 transition-colors shadow-sm"
             >
               {copiedOrderNumber ? (
                 <>
@@ -159,6 +174,64 @@ export default function OrderConfirmationModal({ settings }: OrderConfirmationMo
                 </>
               )}
             </button>
+          </div>
+
+          {/* Interactive Live Kitchen & Delivery Tracker */}
+          <div className="p-4 rounded-2xl bg-white border border-oat-200 space-y-3 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="font-serif text-xs font-bold text-cocoa-800 flex items-center gap-1.5">
+                <ChefHat className="w-4 h-4 text-caramel-600" />
+                <span>{t.confirmation.trackOrderTitle}</span>
+              </span>
+              <span className="inline-flex items-center gap-1 text-[10px] text-sage-700 font-bold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                <span>Live Kitchen Queue</span>
+              </span>
+            </div>
+
+            <div className="space-y-2.5 text-xs">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                </div>
+                <div className="flex-1">
+                  <span className="font-bold text-cocoa-900 block">{t.confirmation.stepPaid}</span>
+                  <span className="text-[10px] text-espresso-900/60 block font-mono">
+                    Authorized via Secure Gateway
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-full bg-caramel-100 text-caramel-700 flex items-center justify-center shrink-0 animate-pulse">
+                  <Flame className="w-3.5 h-3.5" />
+                </div>
+                <div className="flex-1">
+                  <span className="font-bold text-cocoa-900 block">{t.confirmation.stepKitchen}</span>
+                  <span className="text-[10px] text-espresso-900/60 block">
+                    Normandy butter &amp; sourdough starter resting
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 opacity-60">
+                <div className="w-6 h-6 rounded-full bg-oat-200 text-espresso-900/60 flex items-center justify-center shrink-0">
+                  <Clock className="w-3.5 h-3.5" />
+                </div>
+                <div className="flex-1">
+                  <span className="font-medium text-cocoa-800 block">{t.confirmation.stepOven}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 opacity-60">
+                <div className="w-6 h-6 rounded-full bg-oat-200 text-espresso-900/60 flex items-center justify-center shrink-0">
+                  <Truck className="w-3.5 h-3.5" />
+                </div>
+                <div className="flex-1">
+                  <span className="font-medium text-cocoa-800 block">{t.confirmation.stepDelivery}</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Schedule & Fulfillment Info */}
@@ -190,11 +263,22 @@ export default function OrderConfirmationModal({ settings }: OrderConfirmationMo
           </div>
 
           {/* Items Summary Table */}
-          <div className="space-y-2">
-            <h4 className="font-serif text-sm font-bold text-cocoa-800">
-              {t.confirmation.itemsOrdered}
-            </h4>
-            <div className="divide-y divide-oat-200 border-y border-oat-200 py-1 text-xs">
+          <div className="space-y-2 bg-white p-4 rounded-2xl border border-oat-200 shadow-sm">
+            <div className="flex items-center justify-between pb-1 border-b border-oat-200">
+              <h4 className="font-serif text-xs font-bold text-cocoa-800 uppercase tracking-wider">
+                {t.confirmation.itemsOrdered}
+              </h4>
+              <button
+                type="button"
+                onClick={handlePrintReceipt}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-caramel-700 hover:text-caramel-800"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>{t.confirmation.printReceipt}</span>
+              </button>
+            </div>
+
+            <div className="divide-y divide-oat-100 text-xs">
               {completedOrder.items?.map((it) => (
                 <div key={it.id} className="py-2 flex justify-between items-center">
                   <div>
@@ -209,7 +293,8 @@ export default function OrderConfirmationModal({ settings }: OrderConfirmationMo
                 </div>
               ))}
             </div>
-            <div className="space-y-1 pt-1 text-xs">
+
+            <div className="space-y-1 pt-2 border-t border-oat-100 text-xs">
               <div className="flex justify-between text-espresso-900/70">
                 <span>{t.cart.subtotal}</span>
                 <span>{formatMoney(completedOrder.subtotal)}</span>
@@ -218,7 +303,7 @@ export default function OrderConfirmationModal({ settings }: OrderConfirmationMo
                 <span>{t.checkout.summaryDelivery}</span>
                 <span>{formatMoney(completedOrder.delivery_fee)}</span>
               </div>
-              <div className="flex justify-between font-serif text-sm font-bold text-cocoa-800 pt-1 border-t border-oat-200">
+              <div className="flex justify-between font-serif text-sm font-bold text-cocoa-900 pt-1 border-t border-oat-200">
                 <span>{t.checkout.grandTotal}</span>
                 <span>{formatMoney(completedOrder.total_amount)}</span>
               </div>
@@ -256,7 +341,7 @@ export default function OrderConfirmationModal({ settings }: OrderConfirmationMo
           )}
 
           {/* Action Buttons */}
-          <div className="space-y-3 pt-2">
+          <div className="space-y-2.5 pt-1">
             <a
               href={whatsappUrl}
               target="_blank"

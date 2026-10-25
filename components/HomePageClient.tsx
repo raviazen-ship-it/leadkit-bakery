@@ -2,7 +2,22 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ArrowRight, Sparkles, HeartHandshake, Wheat, ShieldCheck, Clock, Award } from 'lucide-react';
+import {
+  ArrowRight,
+  Sparkles,
+  HeartHandshake,
+  Wheat,
+  ShieldCheck,
+  Clock,
+  Award,
+  Star,
+  Gift,
+  Truck,
+  CheckCircle2,
+  Lock,
+  CreditCard,
+  MessageCircle,
+} from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import CartDrawer from '@/components/CartDrawer';
@@ -49,6 +64,29 @@ export default function HomePageClient({
       <Navbar settings={settings} />
 
       <main className="flex-1">
+        {/* TOP DEMONSTRATION ACCREDITATION BAR FOR PROSPECTS & CLIENTS */}
+        <section className="bg-gradient-to-r from-cocoa-900 via-cocoa-800 to-caramel-900 text-cream-100 py-2.5 px-4 text-xs border-b border-caramel-500/30">
+          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="font-semibold text-caramel-300">
+                {language === 'en' ? 'Live Showcase Demonstration:' : 'Demonstrasi Live Toko Online:'}
+              </span>
+              <span className="text-cream-100/90 font-light hidden sm:inline">
+                {language === 'en'
+                  ? 'Bilingual (EN/ID) • Dynamic Currency Engine • Multi-Method Stripe Gateway • Automated Kitchen Lead-Times'
+                  : 'Bilingual (EN/ID) • Konversi Mata Uang • Stripe Payment Gateway • Kalkulasi Otomatis Pre-Order'}
+              </span>
+            </div>
+            <Link
+              href="/produk"
+              className="inline-flex items-center gap-1 text-[11px] font-bold text-caramel-300 hover:text-white underline underline-offset-2 ml-auto"
+            >
+              <span>{language === 'en' ? 'Try Interactive Order Flow →' : 'Uji Coba Alur Order →'}</span>
+            </Link>
+          </div>
+        </section>
+
         {/* HERO SECTION */}
         <section className="relative overflow-hidden pt-8 pb-16 lg:py-24 border-b border-oat-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -102,7 +140,7 @@ export default function HomePageClient({
                 </div>
               </div>
 
-              {/* Hero Image */}
+              {/* Hero Image with Floating Glassmorphism Cards */}
               <div className="lg:col-span-5 relative">
                 <div className="relative mx-auto max-w-md lg:max-w-none">
                   <div className="aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-oat-200 relative">
@@ -113,8 +151,8 @@ export default function HomePageClient({
                     />
                   </div>
 
-                  {/* Floating Highlight Card */}
-                  <div className="absolute -bottom-6 -left-6 bg-white/95 backdrop-blur-sm p-4 rounded-2xl shadow-xl border border-oat-200 hidden sm:flex items-center gap-3 max-w-xs">
+                  {/* Floating Highlight Card 1 */}
+                  <div className="absolute -bottom-6 -left-6 bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-oat-200 hidden sm:flex items-center gap-3 max-w-xs animate-slideUp">
                     <div className="w-10 h-10 rounded-full bg-caramel-100 text-caramel-700 flex items-center justify-center shrink-0">
                       <Award className="w-5 h-5" />
                     </div>
@@ -127,7 +165,75 @@ export default function HomePageClient({
                       </span>
                     </div>
                   </div>
+
+                  {/* Floating Highlight Card 2: 5-Star Rating */}
+                  <div className="absolute top-6 -right-6 bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-xl border border-oat-200 hidden sm:flex items-center gap-2 animate-fadeIn">
+                    <div className="flex text-amber-500">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-3.5 h-3.5 fill-current" />
+                      ))}
+                    </div>
+                    <span className="text-xs font-bold text-cocoa-900">4.9 / 5.0</span>
+                  </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 3-STEP SEAMLESS ORDERING EXPERIENCE */}
+        <section className="py-14 bg-white border-b border-oat-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-xl mx-auto mb-10 space-y-2">
+              <span className="text-xs font-bold tracking-widest uppercase text-caramel-600 block">
+                {language === 'en' ? 'HOW IT WORKS' : 'CARA PEMESANAN'}
+              </span>
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-cocoa-800">
+                {language === 'en' ? 'Effortless Ordering from Oven to Doorstep' : 'Pemesanan Mudah dari Dapur ke Meja Anda'}
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="p-6 rounded-2xl bg-cream-50 border border-oat-200 text-center space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-caramel-100 text-caramel-700 mx-auto flex items-center justify-center font-serif text-lg font-bold">
+                  1
+                </div>
+                <h3 className="font-serif text-base font-bold text-cocoa-800">
+                  {language === 'en' ? 'Choose Artisan Bakes' : 'Pilih Menu Artisan'}
+                </h3>
+                <p className="text-xs text-espresso-900/70 leading-relaxed font-light">
+                  {language === 'en'
+                    ? 'Explore signature whole celebration cakes, slow-fermented sourdough, or custom catering sets.'
+                    : 'Pilih kue whole cake perayaan, roti sourdough segar harian, atau paket katering sesuai selera.'}
+                </p>
+              </div>
+
+              <div className="p-6 rounded-2xl bg-cream-50 border border-oat-200 text-center space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-caramel-100 text-caramel-700 mx-auto flex items-center justify-center font-serif text-lg font-bold">
+                  2
+                </div>
+                <h3 className="font-serif text-base font-bold text-cocoa-800">
+                  {language === 'en' ? 'Pick Date & Pay Online' : 'Pilih Jadwal & Bayar Online'}
+                </h3>
+                <p className="text-xs text-espresso-900/70 leading-relaxed font-light">
+                  {language === 'en'
+                    ? 'Schedule your required delivery/pickup time slot with automated lead time rules and instant card/Apple Pay checkout.'
+                    : 'Tentukan tanggal pengambilan atau kirim alamat. Selesaikan pembayaran instan dengan kartu kredit atau transfer.'}
+                </p>
+              </div>
+
+              <div className="p-6 rounded-2xl bg-cream-50 border border-oat-200 text-center space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-caramel-100 text-caramel-700 mx-auto flex items-center justify-center font-serif text-lg font-bold">
+                  3
+                </div>
+                <h3 className="font-serif text-base font-bold text-cocoa-800">
+                  {language === 'en' ? 'Fresh Handcrafted Delivery' : 'Pengantaran Segar & Terjaga'}
+                </h3>
+                <p className="text-xs text-espresso-900/70 leading-relaxed font-light">
+                  {language === 'en'
+                    ? 'Baked fresh on the morning of fulfillment and delivered in insulated temperature-controlled packaging.'
+                    : 'Dipanggang segar di pagi hari pengantaran dan dikirim dengan packaging aman berinsulasi dingin.'}
+                </p>
               </div>
             </div>
           </div>
@@ -299,6 +405,73 @@ export default function HomePageClient({
             </div>
           </section>
         )}
+
+        {/* CUSTOMER REVIEWS & SOCIAL PROOF */}
+        <section className="py-16 bg-white border-b border-oat-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-xl mx-auto mb-12 space-y-2">
+              <span className="text-xs font-bold tracking-widest uppercase text-caramel-600 block">
+                {language === 'en' ? 'VOICES OF OUR PATRONS' : 'ULASAN PELANGGAN'}
+              </span>
+              <h2 className="font-serif text-3xl font-bold text-cocoa-800">
+                {language === 'en' ? 'Loved by Pastry Lovers & Event Hosts' : 'Dipercaya untuk Setiap Momen Spesial'}
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="p-6 rounded-3xl bg-cream-50 border border-oat-200 space-y-4 shadow-sm flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex text-amber-500">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-current" />
+                    ))}
+                  </div>
+                  <p className="text-xs sm:text-sm text-espresso-900/80 italic font-serif leading-relaxed">
+                    &quot;The Valrhona chocolate cake was the absolute centerpiece of our corporate anniversary. The online checkout with Apple Pay took 30 seconds.&quot;
+                  </p>
+                </div>
+                <div className="border-t border-oat-200 pt-3 flex items-center justify-between text-xs">
+                  <span className="font-bold text-cocoa-900">Amanda R.</span>
+                  <span className="text-espresso-900/50">Private Event Host</span>
+                </div>
+              </div>
+
+              <div className="p-6 rounded-3xl bg-cream-50 border border-oat-200 space-y-4 shadow-sm flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex text-amber-500">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-current" />
+                    ))}
+                  </div>
+                  <p className="text-xs sm:text-sm text-espresso-900/80 italic font-serif leading-relaxed">
+                    &quot;Best open-crumb sourdough we have had outside Paris. You can instantly taste the French Normandy butter and patience in fermentation.&quot;
+                  </p>
+                </div>
+                <div className="border-t border-oat-200 pt-3 flex items-center justify-between text-xs">
+                  <span className="font-bold text-cocoa-900">Chef Marcus T.</span>
+                  <span className="text-espresso-900/50">Culinary Consultant</span>
+                </div>
+              </div>
+
+              <div className="p-6 rounded-3xl bg-cream-50 border border-oat-200 space-y-4 shadow-sm flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex text-amber-500">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-current" />
+                    ))}
+                  </div>
+                  <p className="text-xs sm:text-sm text-espresso-900/80 italic font-serif leading-relaxed">
+                    &quot;The automated pre-order date selection is brilliant. Arrived in pristine refrigerated packaging with greeting cards included.&quot;
+                  </p>
+                </div>
+                <div className="border-t border-oat-200 pt-3 flex items-center justify-between text-xs">
+                  <span className="font-bold text-cocoa-900">Claire D.</span>
+                  <span className="text-espresso-900/50">Verified Order</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* SEASONAL CAMPAIGN SECTION */}
         {activeCampaign && (
