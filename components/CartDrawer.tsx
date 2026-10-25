@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
-import { formatRupiah } from '@/lib/utils';
+import { useLanguage } from '@/context/LanguageContext';
 import { BusinessSettings } from '@/types';
 
 interface CartDrawerProps {
@@ -22,6 +22,8 @@ export default function CartDrawer({ settings }: CartDrawerProps) {
     subtotal,
     itemCount,
   } = useCart();
+
+  const { t, formatMoney } = useLanguage();
 
   if (!isCartOpen) return null;
 
@@ -43,12 +45,12 @@ export default function CartDrawer({ settings }: CartDrawerProps) {
             <div className="flex items-center gap-2">
               <ShoppingBag className="w-5 h-5 text-cocoa-800" />
               <h2 className="font-serif text-xl font-bold text-cocoa-800">
-                Keranjang Pesanan ({itemCount})
+                {t.cart.title} ({itemCount})
               </h2>
             </div>
             <button
               onClick={closeCart}
-              aria-label="Tutup Keranjang"
+              aria-label="Close Cart"
               className="p-1.5 rounded-lg text-cocoa-800 hover:bg-oat-200 transition-colors"
             >
               <X className="w-5 h-5" />
@@ -64,10 +66,10 @@ export default function CartDrawer({ settings }: CartDrawerProps) {
                 </div>
                 <div className="space-y-1">
                   <h3 className="font-serif text-lg font-semibold text-cocoa-800">
-                    Keranjang Anda Masih Kosong
+                    {t.cart.emptyTitle}
                   </h3>
-                  <p className="text-sm text-espresso-900/70 max-w-xs">
-                    Pilih kue artisan, roti segar, atau menu catering favorit Anda untuk memulai pesanan.
+                  <p className="text-sm text-espresso-900/70 max-w-xs font-light">
+                    {t.cart.emptyDesc}
                   </p>
                 </div>
                 <Link
@@ -75,7 +77,7 @@ export default function CartDrawer({ settings }: CartDrawerProps) {
                   onClick={closeCart}
                   className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-caramel-500 text-cream-100 font-medium hover:bg-caramel-600 transition-colors text-sm shadow-sm"
                 >
-                  <span>Lihat Katalog Produk</span>
+                  <span>{t.cart.browseMenu}</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
@@ -95,7 +97,7 @@ export default function CartDrawer({ settings }: CartDrawerProps) {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-xs text-cocoa-800/40">
-                        No Foto
+                        Photo
                       </div>
                     )}
                   </div>
@@ -110,7 +112,7 @@ export default function CartDrawer({ settings }: CartDrawerProps) {
                         <button
                           onClick={() => removeItem(item.product.id, item.selectedVariant.id)}
                           className="text-espresso-900/40 hover:text-red-600 p-1 transition-colors"
-                          aria-label="Hapus item"
+                          aria-label="Remove item"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -122,7 +124,7 @@ export default function CartDrawer({ settings }: CartDrawerProps) {
 
                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-oat-100">
                       <span className="text-sm font-semibold text-cocoa-800">
-                        {formatRupiah(item.selectedVariant.price * item.quantity)}
+                        {formatMoney(item.selectedVariant.price * item.quantity)}
                       </span>
 
                       {/* Quantity Controls */}
@@ -135,7 +137,7 @@ export default function CartDrawer({ settings }: CartDrawerProps) {
                               item.quantity - 1
                             )
                           }
-                          aria-label="Kurangi jumlah"
+                          aria-label="Decrease quantity"
                           className="p-1 hover:bg-oat-200 rounded-l text-cocoa-800"
                         >
                           <Minus className="w-3.5 h-3.5" />
@@ -151,7 +153,7 @@ export default function CartDrawer({ settings }: CartDrawerProps) {
                               item.quantity + 1
                             )
                           }
-                          aria-label="Tambah jumlah"
+                          aria-label="Increase quantity"
                           className="p-1 hover:bg-oat-200 rounded-r text-cocoa-800"
                         >
                           <Plus className="w-3.5 h-3.5" />
@@ -168,20 +170,20 @@ export default function CartDrawer({ settings }: CartDrawerProps) {
           {items.length > 0 && (
             <div className="p-5 border-t border-oat-200 bg-cream-100 space-y-3">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-espresso-900/70">Subtotal</span>
+                <span className="text-espresso-900/70">{t.cart.subtotal}</span>
                 <span className="font-serif text-lg font-bold text-cocoa-800">
-                  {formatRupiah(subtotal)}
+                  {formatMoney(subtotal)}
                 </span>
               </div>
 
               {!isMinOrderMet && (
                 <div className="p-2.5 rounded-lg bg-rose-200/60 border border-rose-300 text-xs text-cocoa-800">
-                  Minimum pesanan adalah {formatRupiah(minOrder)}. Tambahkan menu lain untuk melanjutkan.
+                  {t.cart.minOrderAlert} {formatMoney(minOrder)}.
                 </div>
               )}
 
               <p className="text-[11px] text-espresso-900/60 leading-tight">
-                * Ongkos kirim dan jadwal pengambilan akan dihitung dan dikonfirmasi pada tahap checkout.
+                {t.cart.deliveryNotice}
               </p>
 
               <button
@@ -193,7 +195,7 @@ export default function CartDrawer({ settings }: CartDrawerProps) {
                     : 'bg-oat-300 text-espresso-900/40 cursor-not-allowed'
                 }`}
               >
-                <span>Lanjut ke Formulir Checkout</span>
+                <span>{t.cart.proceedCheckout}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>

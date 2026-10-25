@@ -1,24 +1,35 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import { Store, Phone, Mail, MapPin, Clock, Instagram, Lock } from 'lucide-react';
 import { BusinessSettings } from '@/types';
 import { formatWhatsAppNumber } from '@/lib/utils';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface FooterProps {
   settings?: BusinessSettings;
 }
 
 export default function Footer({ settings }: FooterProps) {
+  const { t, language } = useLanguage();
+
   const storeName = settings?.store_name || 'Aura Artisan Bakery & Catering';
   const description =
-    settings?.description ||
-    'Artisan bakery & catering dengan bahan segar berkualitas tinggi untuk setiap perayaan istimewa Anda.';
+    language === 'en'
+      ? 'Artisan bakery & boutique catering crafted with pure French butter, slow fermentation, and zero artificial preservatives.'
+      : settings?.description ||
+        'Artisan bakery & catering dengan bahan segar berkualitas tinggi untuk setiap perayaan istimewa Anda.';
+
   const whatsapp = settings?.whatsapp_number || '6281234567890';
   const phone = settings?.phone_number || '021-5551234';
   const email = settings?.email || 'halo@aurabakery.id';
   const address = settings?.address || 'Jl. Senopati No. 42, Kebayoran Baru';
   const city = settings?.city || 'Jakarta Selatan';
-  const hours = settings?.business_hours || 'Selasa - Minggu: 08.00 - 20.00 WIB (Senin Tutup)';
+  const hours =
+    language === 'en'
+      ? 'Tuesday - Sunday: 08:00 AM - 08:00 PM (Monday Closed)'
+      : settings?.business_hours || 'Selasa - Minggu: 08.00 - 20.00 WIB (Senin Tutup)';
   const instagram = settings?.instagram_handle || '@aurabakery.id';
   const instagramUrl = settings?.instagram_url || 'https://instagram.com/aurabakery.id';
 
@@ -65,7 +76,7 @@ export default function Footer({ settings }: FooterProps) {
           {/* Col 2: Navigation Links */}
           <div className="space-y-4">
             <h3 className="font-serif text-lg font-semibold text-cream-100 tracking-wide">
-              Navigasi Halaman
+              {t.footer.navigation}
             </h3>
             <ul className="space-y-2.5 text-sm">
               <li>
@@ -73,7 +84,7 @@ export default function Footer({ settings }: FooterProps) {
                   href="/"
                   className="text-cream-100/80 hover:text-caramel-400 transition-colors"
                 >
-                  Beranda
+                  {t.nav.home}
                 </Link>
               </li>
               <li>
@@ -81,7 +92,7 @@ export default function Footer({ settings }: FooterProps) {
                   href="/produk"
                   className="text-cream-100/80 hover:text-caramel-400 transition-colors"
                 >
-                  Katalog Produk & Pemesanan
+                  {t.nav.menu}
                 </Link>
               </li>
               <li>
@@ -89,7 +100,7 @@ export default function Footer({ settings }: FooterProps) {
                   href="/kontak"
                   className="text-cream-100/80 hover:text-caramel-400 transition-colors"
                 >
-                  Kontak, Lokasi & FAQ
+                  {t.nav.contact}
                 </Link>
               </li>
             </ul>
@@ -98,7 +109,7 @@ export default function Footer({ settings }: FooterProps) {
           {/* Col 3: Contact & Hours */}
           <div className="space-y-4">
             <h3 className="font-serif text-lg font-semibold text-cream-100 tracking-wide">
-              Kontak & Operasional
+              {t.footer.contactAndHours}
             </h3>
             <ul className="space-y-3 text-sm text-cream-100/80">
               <li className="flex items-start gap-2.5">
@@ -119,7 +130,7 @@ export default function Footer({ settings }: FooterProps) {
               {phone && (
                 <li className="flex items-center gap-2.5">
                   <Phone className="w-4 h-4 text-caramel-400 shrink-0" />
-                  <span>Telepon: {phone}</span>
+                  <span>{t.contact.phone}: {phone}</span>
                 </li>
               )}
               {email && (
@@ -134,7 +145,7 @@ export default function Footer({ settings }: FooterProps) {
           {/* Col 4: Store Location & Maps CTA */}
           <div className="space-y-4">
             <h3 className="font-serif text-lg font-semibold text-cream-100 tracking-wide">
-              Lokasi Toko
+              {t.footer.storeLocation}
             </h3>
             <div className="flex items-start gap-2.5 text-sm text-cream-100/80">
               <MapPin className="w-4 h-4 text-caramel-400 shrink-0 mt-0.5" />
@@ -146,7 +157,7 @@ export default function Footer({ settings }: FooterProps) {
               href="/kontak"
               className="inline-block mt-2 text-xs font-semibold uppercase tracking-wider px-4 py-2 rounded-full border border-caramel-500/60 text-caramel-400 hover:bg-caramel-500 hover:text-cream-100 transition-all"
             >
-              Lihat di Google Maps
+              {t.contact.openMaps}
             </Link>
           </div>
         </div>
@@ -154,7 +165,7 @@ export default function Footer({ settings }: FooterProps) {
         {/* Bottom Bar: Copyright & Admin Portal Link */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-cream-100/60 font-light">
           <p>
-            &copy; {new Date().getFullYear()} {storeName}. Seluruh hak cipta dilindungi.
+            &copy; {new Date().getFullYear()} {storeName}. {t.footer.rights}
           </p>
           <div className="flex items-center gap-4">
             <Link
@@ -162,7 +173,7 @@ export default function Footer({ settings }: FooterProps) {
               className="inline-flex items-center gap-1.5 text-cream-100/60 hover:text-caramel-400 transition-colors"
             >
               <Lock className="w-3.5 h-3.5" />
-              <span>Portal Admin</span>
+              <span>{t.footer.adminPortal}</span>
             </Link>
           </div>
         </div>

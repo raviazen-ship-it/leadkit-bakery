@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Minus, ShoppingBag, Clock, AlertTriangle, ShieldCheck, Check } from 'lucide-react';
 import { Product, ProductVariant } from '@/types';
-import { formatRupiah } from '@/lib/utils';
+import { useLanguage } from '@/context/LanguageContext';
 import { useCart } from '@/context/CartContext';
 
 interface ProductDetailModalProps {
@@ -13,6 +13,7 @@ interface ProductDetailModalProps {
 
 export default function ProductDetailModal({ product, onClose }: ProductDetailModalProps) {
   const { addItem } = useCart();
+  const { t, formatMoney } = useLanguage();
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState<string>('');
@@ -59,7 +60,7 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
         <button
           onClick={onClose}
           className="absolute top-4 right-4 z-10 p-2 rounded-full bg-cream-100/90 text-cocoa-800 hover:bg-white shadow-sm transition-all focus:outline-none"
-          aria-label="Tutup Detail Produk"
+          aria-label="Close"
         >
           <X className="w-5 h-5" />
         </button>
@@ -76,7 +77,7 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-sm text-cocoa-800/40">
-                  Foto Produk
+                  {t.productModal.photoLabel}
                 </div>
               )}
               {product.badge && (
@@ -111,15 +112,15 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-caramel-600 shrink-0" />
                 <span>
-                  <strong>Waktu Pre-Order:</strong>{' '}
+                  <strong>{t.productModal.preorderNotice}</strong>{' '}
                   {product.min_preorder_days > 0
-                    ? `Min. ${product.min_preorder_days} hari sebelumnya`
-                    : 'Tersedia Hari Ini (Ready Stock)'}
+                    ? `Min. ${product.min_preorder_days} ${t.catalog.days}`
+                    : t.productModal.readyStock}
                 </span>
               </div>
               {product.prep_time_hours > 0 && (
                 <div className="text-[11px] text-espresso-900/70 pl-6">
-                  Waktu persiapan dapur: ~{product.prep_time_hours} jam.
+                  {t.productModal.prepTime} {product.prep_time_hours} {t.productModal.hours}.
                 </div>
               )}
             </div>
@@ -138,7 +139,7 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
               </h3>
 
               <div className="text-xl font-serif font-bold text-cocoa-900">
-                {formatRupiah(currentPrice)}
+                {formatMoney(currentPrice)}
               </div>
 
               <p className="text-xs sm:text-sm text-espresso-900/80 leading-relaxed font-light">
@@ -149,7 +150,7 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
               {product.variants && product.variants.length > 0 && (
                 <div className="pt-2 space-y-2">
                   <label className="block text-xs font-bold text-cocoa-800 uppercase tracking-wider">
-                    Pilih Ukuran / Varian *
+                    {t.productModal.selectVariant}
                   </label>
                   <div className="space-y-2">
                     {product.variants.map((v) => {
@@ -170,7 +171,7 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
                         >
                           <span className="text-cocoa-800">{v.name}</span>
                           <span className="font-serif font-bold text-cocoa-900">
-                            {formatRupiah(v.price)}
+                            {formatMoney(v.price)}
                           </span>
                         </button>
                       );
@@ -186,7 +187,7 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
                     <div className="flex items-start gap-2 text-espresso-900/80">
                       <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                       <span>
-                        <strong>Alergen:</strong> {product.allergens}
+                        <strong>{t.productModal.allergens}</strong> {product.allergens}
                       </span>
                     </div>
                   )}
@@ -194,7 +195,7 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
                     <div className="flex items-start gap-2 text-espresso-900/80">
                       <ShieldCheck className="w-4 h-4 text-sage-600 shrink-0 mt-0.5" />
                       <span>
-                        <strong>Penyimpanan:</strong> {product.storage_instructions}
+                        <strong>{t.productModal.storage}</strong> {product.storage_instructions}
                       </span>
                     </div>
                   )}
@@ -205,12 +206,12 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
             {/* Quantity Selector & Add Button */}
             <div className="pt-4 border-t border-oat-200 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-espresso-900">Jumlah Pesanan:</span>
+                <span className="text-xs font-semibold text-espresso-900">{t.productModal.quantity}</span>
                 <div className="flex items-center border border-oat-300 rounded-xl bg-white shadow-sm">
                   <button
                     type="button"
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    aria-label="Kurangi kuantitas"
+                    aria-label="Decrease quantity"
                     className="p-2 text-cocoa-800 hover:bg-oat-100 rounded-l-xl transition-colors"
                   >
                     <Minus className="w-4 h-4" />
@@ -221,7 +222,7 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
                   <button
                     type="button"
                     onClick={() => setQuantity(quantity + 1)}
-                    aria-label="Tambah kuantitas"
+                    aria-label="Increase quantity"
                     className="p-2 text-cocoa-800 hover:bg-oat-100 rounded-r-xl transition-colors"
                   >
                     <Plus className="w-4 h-4" />
@@ -244,13 +245,13 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
                 {isAdded ? (
                   <>
                     <Check className="w-5 h-5" />
-                    <span>Berhasil Ditambahkan!</span>
+                    <span>{t.productModal.addedSuccess}</span>
                   </>
                 ) : (
                   <>
                     <ShoppingBag className="w-5 h-5" />
                     <span>
-                      Tambah ke Keranjang — {formatRupiah(currentPrice * quantity)}
+                      {t.productModal.addToCart} {formatMoney(currentPrice * quantity)}
                     </span>
                   </>
                 )}

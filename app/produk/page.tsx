@@ -10,8 +10,8 @@ import CheckoutDrawer from '@/components/CheckoutDrawer';
 import OrderConfirmationModal from '@/components/OrderConfirmationModal';
 import ProductDetailModal from '@/components/ProductDetailModal';
 import { Product, Category, BusinessSettings } from '@/types';
-import { formatRupiah } from '@/lib/utils';
 import { useCart } from '@/context/CartContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 function ProdukContent() {
   const searchParams = useSearchParams();
@@ -32,6 +32,7 @@ function ProdukContent() {
   const [activeProductForModal, setActiveProductForModal] = useState<Product | null>(null);
 
   const { openCart, itemCount } = useCart();
+  const { t, formatMoney } = useLanguage();
 
   useEffect(() => {
     async function fetchData() {
@@ -111,15 +112,15 @@ function ProdukContent() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cream-100 text-cocoa-800 text-xs font-semibold tracking-wide border border-oat-200">
               <Sparkles className="w-3.5 h-3.5 text-caramel-600" />
-              <span>Katalog Lengkap Bakery & Catering</span>
+              <span>{t.catalog.badge}</span>
             </div>
 
             <h1 className="font-serif text-3xl sm:text-5xl font-bold text-cocoa-800">
-              Something Delicious Awaits
+              {t.catalog.title}
             </h1>
 
             <p className="text-sm sm:text-base text-espresso-900/70 max-w-2xl mx-auto font-light leading-relaxed">
-              Pilih kue perayaan favorit, sourdough fermentasi alami, kue kering premium, dan paket catering untuk momen Anda.
+              {t.catalog.subtitle}
             </p>
 
             {/* Search Bar */}
@@ -128,7 +129,7 @@ function ProdukContent() {
                 <Search className="w-5 h-5 text-espresso-900/40 absolute left-4 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Cari nama kue, roti, atau catering..."
+                  placeholder={t.catalog.searchPlaceholder}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-12 pr-4 py-3.5 rounded-full border border-oat-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-caramel-500 shadow-sm"
@@ -138,7 +139,7 @@ function ProdukContent() {
                     onClick={() => setSearchQuery('')}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-espresso-900/50 hover:text-espresso-900 font-semibold"
                   >
-                    Reset
+                    {t.catalog.resetSearch}
                   </button>
                 )}
               </div>
@@ -160,7 +161,7 @@ function ProdukContent() {
                     : 'bg-white border border-oat-200 text-cocoa-800 hover:bg-oat-100'
                 }`}
               >
-                Semua Kategori
+                {t.catalog.allCategories}
               </button>
 
               {categories.map((c) => {
@@ -192,7 +193,7 @@ function ProdukContent() {
                   onChange={(e) => setAvailableOnly(e.target.checked)}
                   className="rounded text-caramel-600 focus:ring-caramel-500"
                 />
-                <span>Hanya Tersedia</span>
+                <span>{t.catalog.availableOnly}</span>
               </label>
 
               {/* Sort Selector */}
@@ -203,10 +204,10 @@ function ProdukContent() {
                   onChange={(e) => setSortBy(e.target.value as any)}
                   className="text-xs text-cocoa-800 bg-transparent focus:outline-none font-medium cursor-pointer"
                 >
-                  <option value="default">Urutan Standar</option>
-                  <option value="price-asc">Harga Terendah</option>
-                  <option value="price-desc">Harga Tertinggi</option>
-                  <option value="name-asc">Nama (A - Z)</option>
+                  <option value="default">{t.catalog.sortDefault}</option>
+                  <option value="price-asc">{t.catalog.sortPriceAsc}</option>
+                  <option value="price-desc">{t.catalog.sortPriceDesc}</option>
+                  <option value="name-asc">{t.catalog.sortNameAsc}</option>
                 </select>
               </div>
             </div>
@@ -235,10 +236,10 @@ function ProdukContent() {
                 <Search className="w-8 h-8 opacity-40" />
               </div>
               <h3 className="font-serif text-xl font-bold text-cocoa-800">
-                Menu Tidak Ditemukan
+                {t.catalog.notFoundTitle}
               </h3>
               <p className="text-xs text-espresso-900/70">
-                Tidak ada produk yang cocok dengan pencarian &quot;{searchQuery}&quot; atau filter yang dipilih. Silakan coba kata kunci lain.
+                {t.catalog.notFoundDesc}
               </p>
               <button
                 onClick={() => {
@@ -248,7 +249,7 @@ function ProdukContent() {
                 }}
                 className="px-5 py-2.5 rounded-full bg-caramel-500 text-cream-100 text-xs font-semibold hover:bg-caramel-600 transition-colors"
               >
-                Reset Semua Filter
+                {t.catalog.resetFilters}
               </button>
             </div>
           ) : (
@@ -269,7 +270,7 @@ function ProdukContent() {
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-xs text-cocoa-800/40">
-                          Foto Produk
+                          {t.productModal.photoLabel}
                         </div>
                       )}
 
@@ -282,7 +283,7 @@ function ProdukContent() {
                         )}
                         {!prod.is_available && (
                           <span className="bg-red-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-md">
-                            Habis
+                            {t.catalog.outOfStock}
                           </span>
                         )}
                       </div>
@@ -291,7 +292,7 @@ function ProdukContent() {
                       {prod.min_preorder_days > 0 && (
                         <span className="absolute bottom-3 right-3 bg-espresso-900/80 backdrop-blur-sm text-cream-100 text-[10px] font-medium px-2 py-0.5 rounded-md flex items-center gap-1">
                           <Clock className="w-3 h-3 text-caramel-400" />
-                          <span>Pre-order {prod.min_preorder_days} Hari</span>
+                          <span>{t.catalog.preorderDays} {prod.min_preorder_days} {t.catalog.days}</span>
                         </span>
                       )}
                     </div>
@@ -311,7 +312,7 @@ function ProdukContent() {
                       {/* Variant indication */}
                       {prod.variants && prod.variants.length > 1 && (
                         <span className="inline-block text-[11px] text-caramel-700 bg-caramel-50 px-2 py-0.5 rounded-md border border-caramel-200/60">
-                          {prod.variants.length} Pilihan Ukuran/Varian
+                          {prod.variants.length} {t.catalog.variantsAvailable}
                         </span>
                       )}
                     </div>
@@ -320,9 +321,9 @@ function ProdukContent() {
                   {/* Price & CTA Button */}
                   <div className="p-5 pt-0 border-t border-oat-100 mt-3 flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] text-espresso-900/60 block">Mulai dari</span>
+                      <span className="text-[10px] text-espresso-900/60 block">{t.catalog.startingFrom}</span>
                       <span className="font-serif text-base font-bold text-cocoa-900">
-                        {formatRupiah(prod.base_price)}
+                        {formatMoney(prod.base_price)}
                       </span>
                     </div>
 
@@ -332,7 +333,7 @@ function ProdukContent() {
                       className="px-4 py-2 rounded-full bg-caramel-500 hover:bg-caramel-600 text-cream-100 text-xs font-semibold transition-all shadow-sm flex items-center gap-1.5 focus:ring-2 focus:ring-caramel-400"
                     >
                       <ShoppingBag className="w-3.5 h-3.5" />
-                      <span>Detail & Pesan</span>
+                      <span>{t.catalog.detailAndOrder}</span>
                     </button>
                   </div>
                 </div>
@@ -352,10 +353,10 @@ function ProdukContent() {
                 <div className="w-7 h-7 rounded-full bg-caramel-500 text-cream-100 flex items-center justify-center text-xs font-bold">
                   {itemCount}
                 </div>
-                <span>Lihat Keranjang Pesanan</span>
+                <span>{t.catalog.viewCartFloat}</span>
               </div>
               <span className="text-caramel-300 font-serif font-bold">
-                Lanjut &rarr;
+                &rarr;
               </span>
             </button>
           </div>
@@ -382,7 +383,7 @@ export default function ProdukPage() {
       fallback={
         <div className="min-h-screen bg-cream-100 flex items-center justify-center">
           <div className="text-sm font-serif text-cocoa-800 animate-pulse">
-            Memuat Katalog Aura Bakery...
+            Loading Catalog...
           </div>
         </div>
       }

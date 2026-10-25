@@ -3,8 +3,9 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ShoppingBag, Menu, X, ArrowRight, Store } from 'lucide-react';
+import { ShoppingBag, Menu, X, ArrowRight, Store, Globe } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { BusinessSettings } from '@/types';
 
 interface NavbarProps {
@@ -14,19 +15,26 @@ interface NavbarProps {
 export default function Navbar({ settings }: NavbarProps) {
   const pathname = usePathname();
   const { itemCount, openCart } = useCart();
+  const { language, setLanguage, currency, t } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const announcementEnabled = settings?.announcement_enabled ?? true;
   const announcementText =
-    settings?.announcement_text ||
-    'Pre-order Festive Season & Eid Hampers telah dibuka! Kuota terbatas setiap harinya.';
+    language === 'en'
+      ? t.announcement
+      : settings?.announcement_text || t.announcement;
+
   const storeName = settings?.store_name || 'Aura Artisan Bakery';
 
   const navLinks = [
-    { name: 'Beranda', href: '/' },
-    { name: 'Produk & Menu', href: '/produk' },
-    { name: 'Kontak & Lokasi', href: '/kontak' },
+    { name: t.nav.home, href: '/' },
+    { name: t.nav.menu, href: '/produk' },
+    { name: t.nav.contact, href: '/kontak' },
   ];
+
+  const toggleLanguage = () => {
+    setLanguage(language === 'en' ? 'id' : 'en');
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-cream-100/95 backdrop-blur-md border-b border-oat-200 transition-all">
@@ -39,7 +47,7 @@ export default function Navbar({ settings }: NavbarProps) {
               href="/produk"
               className="underline hover:text-caramel-400 font-semibold inline-flex items-center gap-1 transition-colors"
             >
-              Lihat Menu
+              {t.announcementCta}
             </Link>
           </div>
         </div>
@@ -86,12 +94,22 @@ export default function Navbar({ settings }: NavbarProps) {
             })}
           </nav>
 
-          {/* Right Action Icons: Cart & CTA */}
-          <div className="flex items-center gap-3 sm:gap-4">
+          {/* Right Action Icons: Language Toggle, Cart & CTA */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Language & Currency Switcher Pill */}
+            <button
+              onClick={toggleLanguage}
+              title="Switch Language & Currency"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-oat-300 bg-white hover:bg-oat-100 text-xs font-semibold text-cocoa-800 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-caramel-400"
+            >
+              <Globe className="w-3.5 h-3.5 text-caramel-600" />
+              <span>{language === 'en' ? '🇺🇸 EN ($)' : '🇮🇩 ID (Rp)'}</span>
+            </button>
+
             {/* Cart Button */}
             <button
               onClick={openCart}
-              aria-label="Buka Keranjang Belanja"
+              aria-label="Open Shopping Cart"
               className="relative p-2.5 rounded-full hover:bg-oat-200 text-cocoa-800 transition-colors flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-caramel-500"
             >
               <ShoppingBag className="w-5 h-5" />
@@ -102,19 +120,19 @@ export default function Navbar({ settings }: NavbarProps) {
               )}
             </button>
 
-            {/* Desktop Pesan Sekarang Button */}
+            {/* Desktop Order Button */}
             <Link
               href="/produk"
               className="hidden sm:inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-cocoa-800 text-cream-100 text-sm font-medium hover:bg-cocoa-900 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-cocoa-700"
             >
-              <span>Pesan Sekarang</span>
+              <span>{t.nav.orderNow}</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
 
             {/* Mobile Menu Toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Buka Menu Navigasi"
+              aria-label="Open Navigation Menu"
               className="md:hidden p-2 rounded-lg text-cocoa-800 hover:bg-oat-200 transition-colors focus:outline-none"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -143,13 +161,20 @@ export default function Navbar({ settings }: NavbarProps) {
               </Link>
             );
           })}
-          <div className="pt-2">
+          <div className="pt-2 flex flex-col gap-2">
+            <button
+              onClick={toggleLanguage}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-oat-300 bg-white text-cocoa-800 text-sm font-semibold hover:bg-oat-100 transition-colors"
+            >
+              <Globe className="w-4 h-4 text-caramel-600" />
+              <span>{language === 'en' ? 'Switch to Indonesian (Rp)' : 'Switch to English ($ USD)'}</span>
+            </button>
             <Link
               href="/produk"
               onClick={() => setMobileMenuOpen(false)}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-cocoa-800 text-cream-100 font-medium hover:bg-cocoa-900 transition-colors"
             >
-              <span>Pesan Sekarang</span>
+              <span>{t.nav.orderNow}</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { DM_Serif_Display, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import { CartProvider } from '@/context/CartContext';
+import { LanguageProvider } from '@/context/LanguageContext';
 
 const dmSerif = DM_Serif_Display({
   weight: ['400'],
@@ -38,7 +39,9 @@ export default function RootLayout({
   return (
     <html lang="id" className={`${dmSerif.variable} ${plusJakarta.variable}`}>
       <body className="min-h-screen bg-cream-100 text-espresso-900 flex flex-col font-sans">
-        <CartProvider>{children}</CartProvider>
+        <LanguageProvider>
+          <CartProvider>{children}</CartProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

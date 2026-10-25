@@ -20,12 +20,15 @@ import Footer from '@/components/Footer';
 import CartDrawer from '@/components/CartDrawer';
 import { BusinessSettings, FAQ } from '@/types';
 import { formatWhatsAppNumber } from '@/lib/utils';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function KontakPage() {
   const [settings, setSettings] = useState<BusinessSettings | undefined>(undefined);
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [activeFaqId, setActiveFaqId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const { t, language } = useLanguage();
 
   useEffect(() => {
     async function loadData() {
@@ -59,7 +62,10 @@ export default function KontakPage() {
   const address = settings?.address || 'Jl. Senopati No. 42, Kebayoran Baru';
   const city = settings?.city || 'Jakarta Selatan';
   const postalCode = settings?.postal_code || '12190';
-  const hours = settings?.business_hours || 'Selasa - Minggu: 08.00 - 20.00 WIB (Senin Tutup)';
+  const hours =
+    language === 'en'
+      ? 'Tuesday - Sunday: 08:00 AM - 08:00 PM (Monday Closed)'
+      : settings?.business_hours || 'Selasa - Minggu: 08.00 - 20.00 WIB (Senin Tutup)';
   const mapsEmbed =
     settings?.google_maps_embed_url ||
     'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3966.28659103998!2d106.807464!3d-6.229728!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNsKwMTMnNDcuMCJTIDEwNsKwNDgnMjYuOSJF!5e0!3m2!1sid!2sid!4v1600000000000';
@@ -85,13 +91,13 @@ export default function KontakPage() {
         <section className="bg-oat-100/70 border-b border-oat-200 py-12 lg:py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
             <span className="inline-block px-3.5 py-1 rounded-full bg-cream-100 text-cocoa-800 text-xs font-semibold tracking-wide border border-oat-200">
-              Informasi & Bantuan
+              {t.contact.badge}
             </span>
             <h1 className="font-serif text-3xl sm:text-5xl font-bold text-cocoa-800">
-              Kontak, Lokasi & Pertanyaan Umum
+              {t.contact.title}
             </h1>
             <p className="text-sm sm:text-base text-espresso-900/70 max-w-2xl mx-auto font-light leading-relaxed">
-              Kami siap melayani kebutuhan perayaan, pre-order whole cake, hampers, serta paket hidangan catering Anda.
+              {t.contact.subtitle}
             </p>
           </div>
         </section>
@@ -104,10 +110,10 @@ export default function KontakPage() {
               <div className="bg-white p-6 sm:p-8 rounded-3xl border border-oat-200 shadow-sm space-y-6">
                 <div>
                   <h2 className="font-serif text-2xl font-bold text-cocoa-800">
-                    Hubungi Kami
+                    {t.contact.contactUs}
                   </h2>
                   <p className="text-xs text-espresso-900/70 mt-1">
-                    Tim kami merespons setiap pesan pada jam operasional toko.
+                    {t.contact.contactDesc}
                   </p>
                 </div>
 
@@ -119,7 +125,7 @@ export default function KontakPage() {
                   className="w-full py-4 px-6 rounded-2xl bg-[#25D366] text-white font-bold hover:bg-[#20BE5C] transition-all shadow-md flex items-center justify-center gap-3 text-sm focus:ring-2 focus:ring-[#20BE5C]"
                 >
                   <MessageCircle className="w-5 h-5" />
-                  <span>Chat WhatsApp Langsung</span>
+                  <span>{t.contact.chatWa}</span>
                 </a>
 
                 {/* Details List */}
@@ -130,7 +136,7 @@ export default function KontakPage() {
                     </div>
                     <div>
                       <span className="text-xs font-bold text-cocoa-800 block">
-                        Jam Operasional
+                        {t.contact.hours}
                       </span>
                       <span className="text-xs text-espresso-900/80 leading-relaxed block mt-0.5">
                         {hours}
@@ -144,7 +150,7 @@ export default function KontakPage() {
                     </div>
                     <div>
                       <span className="text-xs font-bold text-cocoa-800 block">
-                        Nomor WhatsApp & Telepon
+                        {t.contact.phone}
                       </span>
                       <a
                         href={waContactUrl}
@@ -156,7 +162,7 @@ export default function KontakPage() {
                       </a>
                       {phone && (
                         <span className="text-xs text-espresso-900/70 block mt-0.5">
-                          Telepon Toko: {phone}
+                          {phone}
                         </span>
                       )}
                     </div>
@@ -169,7 +175,7 @@ export default function KontakPage() {
                       </div>
                       <div>
                         <span className="text-xs font-bold text-cocoa-800 block">
-                          Email Resmi
+                          {t.contact.email}
                         </span>
                         <a
                           href={`mailto:${email}`}
@@ -188,7 +194,7 @@ export default function KontakPage() {
                       </div>
                       <div>
                         <span className="text-xs font-bold text-cocoa-800 block">
-                          Instagram
+                          {t.contact.instagram}
                         </span>
                         <a
                           href={instagramUrl}
@@ -208,15 +214,17 @@ export default function KontakPage() {
               <div className="bg-oat-100/60 p-6 rounded-3xl border border-oat-200 space-y-3 text-xs text-cocoa-800">
                 <div className="flex items-center gap-2 font-bold text-sm">
                   <Truck className="w-4 h-4 text-caramel-600" />
-                  <span>Informasi Pickup & Pengiriman</span>
+                  <span>{t.contact.pickupAndDelivery}</span>
                 </div>
                 <p className="leading-relaxed text-espresso-900/80">
                   {settings?.pickup_instructions ||
-                    'Pengambilan pesanan dapat dilakukan di konter toko pada jam buka.'}
+                    (language === 'en'
+                      ? 'Order pickup is available directly at the Aura Bakery front counter during opening hours.'
+                      : 'Pengambilan pesanan dapat dilakukan di konter toko pada jam buka.')}
                 </p>
                 <p className="leading-relaxed text-espresso-900/80 border-t border-oat-200/80 pt-2">
-                  <strong>Jangkauan Kirim:</strong>{' '}
-                  {settings?.delivery_areas || 'Seluruh area Jakarta dan sekitarnya.'}
+                  <strong>{t.checkout.deliveryAreaNotice}</strong>{' '}
+                  {settings?.delivery_areas || (language === 'en' ? 'Entire metropolitan area & suburbs.' : 'Seluruh area Jakarta dan sekitarnya.')}
                 </p>
               </div>
             </div>
@@ -227,7 +235,7 @@ export default function KontakPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <h2 className="font-serif text-2xl font-bold text-cocoa-800">
-                      Lokasi Toko
+                      {t.contact.locationTitle}
                     </h2>
                     <div className="flex items-center gap-1.5 text-xs text-espresso-900/70 mt-1">
                       <MapPin className="w-3.5 h-3.5 text-caramel-600 shrink-0" />
@@ -243,7 +251,7 @@ export default function KontakPage() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-caramel-500 text-caramel-700 hover:bg-caramel-500 hover:text-cream-100 text-xs font-semibold transition-all self-start sm:self-auto shrink-0"
                   >
-                    <span>Buka di Google Maps</span>
+                    <span>{t.contact.openMaps}</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
                 </div>
@@ -253,7 +261,7 @@ export default function KontakPage() {
                   {mapsEmbed ? (
                     <iframe
                       src={mapsEmbed}
-                      title={`Peta Lokasi ${storeName}`}
+                      title={`Map location for ${storeName}`}
                       className="w-full h-full border-0"
                       loading="lazy"
                       allowFullScreen
@@ -263,7 +271,7 @@ export default function KontakPage() {
                     <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center space-y-2 text-cocoa-800/60">
                       <MapPin className="w-8 h-8" />
                       <p className="text-xs">
-                        Peta Google Maps belum dikonfigurasi oleh admin toko.
+                        Google Maps location has not been configured.
                       </p>
                     </div>
                   )}
@@ -275,16 +283,16 @@ export default function KontakPage() {
                 <div className="p-6 rounded-3xl bg-white border border-oat-200 shadow-sm space-y-3 text-xs text-cocoa-800">
                   <div className="flex items-center gap-2 font-bold text-sm">
                     <ShieldCheck className="w-4 h-4 text-sage-600" />
-                    <span>Ketentuan Pemesanan & Pembatalan</span>
+                    <span>{t.contact.policiesTitle}</span>
                   </div>
                   {settings.ordering_policy && (
                     <p className="leading-relaxed text-espresso-900/80">
-                      <strong>Kebijakan Pemesanan:</strong> {settings.ordering_policy}
+                      <strong>{t.contact.orderingPolicy}</strong> {settings.ordering_policy}
                     </p>
                   )}
                   {settings.cancellation_policy && (
                     <p className="leading-relaxed text-espresso-900/80 border-t border-oat-100 pt-2">
-                      <strong>Kebijakan Pembatalan:</strong> {settings.cancellation_policy}
+                      <strong>{t.contact.cancellationPolicy}</strong> {settings.cancellation_policy}
                     </p>
                   )}
                 </div>
@@ -298,13 +306,13 @@ export default function KontakPage() {
           <div className="text-center space-y-3 mb-10">
             <div className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-caramel-600">
               <HelpCircle className="w-4 h-4" />
-              <span>Pertanyaan yang Sering Diajukan</span>
+              <span>{t.contact.faqTitle}</span>
             </div>
             <h2 className="font-serif text-3xl font-bold text-cocoa-800">
               Frequently Asked Questions (FAQ)
             </h2>
             <p className="text-xs sm:text-sm text-espresso-900/70 font-light">
-              Pelajari hal-hal praktis mengenai cara pesan, waktu persiapan, dan pengiriman kami.
+              {t.contact.faqSubtitle}
             </p>
           </div>
 

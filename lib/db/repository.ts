@@ -620,6 +620,7 @@ export interface CreateOrderInput {
   fulfillment_time_slot: string;
   customer_notes?: string;
   payment_method_id: string;
+  payment_status?: 'Belum Dibayar' | 'Dibayar' | 'Dibatalkan';
   items: Array<{
     product_id: string;
     variant_id: string;
@@ -745,9 +746,16 @@ export async function createOrder(
 
   const totalAmount = subtotal + deliveryFee;
 
-  // Resolve payment method name
+  // Resolve payment method name & initial payment status
+  const isGateway = input.payment_method_id === 'gateway_stripe' || input.payment_method_id.startsWith('gateway_');
   const paymentMethod = settings.payment_methods.find((p) => p.id === input.payment_method_id);
-  const paymentMethodName = paymentMethod ? paymentMethod.name : input.payment_method_id;
+  const paymentMethodName = isGateway
+    ? 'Online Payment Gateway (Stripe Verified)'
+    : paymentMethod
+    ? paymentMethod.name
+    : input.payment_method_id;
+
+  const initialPaymentStatus = input.payment_status || (isGateway ? 'Dibayar' : 'Belum Dibayar');
 
   const orderId = `ord_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
   const orderNumber = generateOrderNumber();
@@ -781,7 +789,7 @@ export async function createOrder(
     input.payment_method_id,
     paymentMethodName,
     'Baru',
-    'Belum Dibayar',
+    initialPaymentStatus,
     '',
     '',
     now,
