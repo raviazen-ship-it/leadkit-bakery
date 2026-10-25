@@ -308,14 +308,17 @@ export default function ContactPageClient({
             {faqs.map((faq) => {
               const isOpen = activeFaqId === faq.id;
               return (
-                <div
+                <details
                   key={faq.id}
+                  open={isOpen}
                   className="bg-white rounded-2xl border border-oat-200 overflow-hidden shadow-sm transition-all"
                 >
-                  <button
-                    type="button"
-                    onClick={() => toggleFaq(faq.id)}
-                    className="w-full p-5 text-left flex items-center justify-between gap-4 hover:bg-cream-50 transition-colors"
+                  <summary
+                    onClick={(e) => {
+                      e.preventDefault();
+                      toggleFaq(faq.id);
+                    }}
+                    className="w-full p-5 text-left flex items-center justify-between gap-4 hover:bg-cream-50 transition-colors cursor-pointer list-none select-none"
                   >
                     <span className="font-serif text-base font-bold text-cocoa-800">
                       {faq.question}
@@ -325,13 +328,11 @@ export default function ContactPageClient({
                         isOpen ? 'rotate-180' : ''
                       }`}
                     />
-                  </button>
-                  {isOpen && (
-                    <div className="px-5 pb-5 pt-1 text-xs sm:text-sm text-espresso-900/80 font-light leading-relaxed border-t border-oat-100 animate-fadeIn">
-                      {faq.answer}
-                    </div>
-                  )}
-                </div>
+                  </summary>
+                  <div className="px-5 pb-5 pt-1 text-xs sm:text-sm text-espresso-900/80 font-light leading-relaxed border-t border-oat-100">
+                    {faq.answer}
+                  </div>
+                </details>
               );
             })}
           </div>

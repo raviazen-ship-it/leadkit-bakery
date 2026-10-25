@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Search, SlidersHorizontal, ShoppingBag, Clock, Sparkles, AlertCircle, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
+import { Search, SlidersHorizontal, ShoppingBag, Clock, Sparkles, AlertCircle, RefreshCw, Eye } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import CartDrawer from '@/components/CartDrawer';
@@ -14,22 +14,25 @@ import { useCart } from '@/context/CartContext';
 import { useLanguage } from '@/context/LanguageContext';
 
 interface ProductCatalogClientProps {
+  initialCategory?: string;
   initialSettings?: BusinessSettings;
   initialCategories: Category[];
   initialProducts: Product[];
 }
 
-function CatalogBody({ initialSettings, initialCategories, initialProducts }: ProductCatalogClientProps) {
-  const searchParams = useSearchParams();
-  const initialCategorySlug = searchParams.get('kategori') || 'all';
-
+export default function ProductCatalogClient({
+  initialCategory = 'all',
+  initialSettings,
+  initialCategories,
+  initialProducts,
+}: ProductCatalogClientProps) {
   const [settings] = useState<BusinessSettings | undefined>(initialSettings);
   const [categories] = useState<Category[]>(initialCategories);
   const [products] = useState<Product[]>(initialProducts);
 
   // Filters state
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>(initialCategorySlug);
+  const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
   const [sortBy, setSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'name-asc'>('default');
   const [availableOnly, setAvailableOnly] = useState(false);
 
@@ -39,13 +42,23 @@ function CatalogBody({ initialSettings, initialCategories, initialProducts }: Pr
   const { openCart, itemCount } = useCart();
   const { t, formatMoney, language } = useLanguage();
 
-  // Sync category param if URL changes
+  // Handle browser back/forward history navigation
   useEffect(() => {
-    const slug = searchParams.get('kategori');
-    if (slug) {
-      setSelectedCategory(slug);
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      setSelectedCategory(params.get('kategori') || 'all');
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const handleSelectCategory = (slug: string) => {
+    setSelectedCategory(slug);
+    const newUrl = slug === 'all' ? '/produk' : `/produk?kategori=${slug}`;
+    if (typeof window !== 'undefined') {
+      window.history.pushState(null, '', newUrl);
     }
-  }, [searchParams]);
+  };
 
   // Filter & sort products
   const filteredProducts = useMemo(() => {
@@ -101,102 +114,105 @@ function CatalogBody({ initialSettings, initialCategories, initialProducts }: Pr
             <p className="text-sm sm:text-base text-espresso-900/70 max-w-2xl mx-auto font-light leading-relaxed">
               {t.catalog.subtitle}
             </p>
+          </div>
+        </section>
 
-            {/* Search Bar */}
-            <div className="pt-4 max-w-xl mx-auto">
-              <div className="relative">
-                <Search className="w-5 h-5 text-espresso-900/40 absolute left-4 top-1/2 -translate-y-1/2" />
+        {/* Filter, Search & Controls Section */}
+        <section className="sticky top-20 z-30 bg-cream-100/95 backdrop-blur-md border-b border-oat-200 py-4 shadow-xs">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+            {/* Top row: Search input & sorting */}
+            <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+              {/* Search input */}
+              <div className="relative w-full sm:w-96">
+                <Search className="w-4 h-4 text-espresso-900/40 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder={t.catalog.searchPlaceholder}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3.5 rounded-full border border-oat-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-caramel-500 shadow-sm"
+                  className="w-full pl-10 pr-4 py-2 rounded-full border border-oat-300 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-caramel-500 shadow-2xs"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-espresso-900/50 hover:text-espresso-900 font-semibold"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-espresso-900/40 hover:text-espresso-900"
                   >
-                    {t.catalog.resetSearch}
+                    &times;
                   </button>
                 )}
               </div>
-            </div>
-          </div>
-        </section>
 
-        {/* Filter & Sort Controls */}
-        <section className="sticky top-20 z-20 bg-cream-100/95 backdrop-blur-md border-b border-oat-200 py-4 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            {/* Category Pills */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+              {/* Controls: In Stock Only & Sort dropdown */}
+              <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-cocoa-800 select-none">
+                  <input
+                    type="checkbox"
+                    checked={availableOnly}
+                    onChange={(e) => setAvailableOnly(e.target.checked)}
+                    className="w-4 h-4 rounded text-caramel-600 focus:ring-caramel-500 border-oat-300"
+                  />
+                  <span>{t.catalog.availableOnly}</span>
+                </label>
+
+                <div className="flex items-center gap-1.5 bg-white border border-oat-300 rounded-full px-3 py-1.5 shadow-2xs text-xs text-cocoa-800">
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-caramel-600" />
+                  <select
+                    value={sortBy}
+                    onChange={(e: any) => setSortBy(e.target.value)}
+                    className="bg-transparent focus:outline-none font-medium cursor-pointer"
+                  >
+                    <option value="default">{t.catalog.sortDefault}</option>
+                    <option value="price-asc">{t.catalog.sortPriceAsc}</option>
+                    <option value="price-desc">{t.catalog.sortPriceDesc}</option>
+                    <option value="name-asc">{t.catalog.sortNameAsc}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Category tabs */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
               <button
                 type="button"
-                onClick={() => setSelectedCategory('all')}
-                className={`px-4 py-2 rounded-full text-xs font-semibold shrink-0 transition-all ${
+                onClick={() => handleSelectCategory('all')}
+                className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shadow-2xs ${
                   selectedCategory === 'all'
                     ? 'bg-cocoa-800 text-cream-100 shadow-sm'
-                    : 'bg-white border border-oat-200 text-cocoa-800 hover:bg-oat-100'
+                    : 'bg-white text-espresso-900/70 hover:bg-oat-200 border border-oat-300'
                 }`}
               >
-                {t.catalog.allCategories}
+                {t.catalog.allCategories} ({products.length})
               </button>
 
-              {categories.map((c) => {
-                const isSelected = selectedCategory === c.slug || selectedCategory === c.id;
+              {categories.map((cat) => {
+                const count = products.filter(
+                  (p) => p.category?.slug === cat.slug || p.category_id === cat.id
+                ).length;
+                const isSelected = selectedCategory === cat.slug || selectedCategory === cat.id;
+
                 return (
                   <button
-                    key={c.id}
+                    key={cat.id}
                     type="button"
-                    onClick={() => setSelectedCategory(c.slug)}
-                    className={`px-4 py-2 rounded-full text-xs font-semibold shrink-0 transition-all ${
+                    onClick={() => handleSelectCategory(cat.slug)}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shadow-2xs ${
                       isSelected
                         ? 'bg-cocoa-800 text-cream-100 shadow-sm'
-                        : 'bg-white border border-oat-200 text-cocoa-800 hover:bg-oat-100'
+                        : 'bg-white text-espresso-900/70 hover:bg-oat-200 border border-oat-300'
                     }`}
                   >
-                    {c.name}
+                    {cat.name} ({count})
                   </button>
                 );
               })}
             </div>
-
-            {/* Sort & Availability Toggle */}
-            <div className="flex items-center gap-3 shrink-0 self-end md:self-auto">
-              {/* Ready Stock Filter */}
-              <label className="flex items-center gap-2 text-xs text-cocoa-800 font-medium cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={availableOnly}
-                  onChange={(e) => setAvailableOnly(e.target.checked)}
-                  className="rounded text-caramel-600 focus:ring-caramel-500"
-                />
-                <span>{t.catalog.availableOnly}</span>
-              </label>
-
-              {/* Sort Selector */}
-              <div className="flex items-center gap-1.5 bg-white border border-oat-200 rounded-full px-3 py-1.5 shadow-sm">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-espresso-900/50" />
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  className="text-xs text-cocoa-800 bg-transparent focus:outline-none font-medium cursor-pointer"
-                >
-                  <option value="default">{t.catalog.sortDefault}</option>
-                  <option value="price-asc">{t.catalog.sortPriceAsc}</option>
-                  <option value="price-desc">{t.catalog.sortPriceDesc}</option>
-                  <option value="name-asc">{t.catalog.sortNameAsc}</option>
-                </select>
-              </div>
-            </div>
           </div>
         </section>
 
-        {/* Product Grid Area - 100% Pre-rendered SSR */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
+        {/* Product Grid Area */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           {filteredProducts.length === 0 ? (
-            <div className="p-16 rounded-3xl bg-white border border-oat-200 text-center max-w-md mx-auto space-y-4 my-8">
+            <div className="text-center py-20 bg-white rounded-3xl border border-oat-200 p-8 space-y-4 max-w-md mx-auto">
               <div className="w-16 h-16 rounded-full bg-oat-100 text-cocoa-800 mx-auto flex items-center justify-center">
                 <Search className="w-8 h-8 opacity-40" />
               </div>
@@ -209,7 +225,7 @@ function CatalogBody({ initialSettings, initialCategories, initialProducts }: Pr
               <button
                 onClick={() => {
                   setSearchQuery('');
-                  setSelectedCategory('all');
+                  handleSelectCategory('all');
                   setAvailableOnly(false);
                 }}
                 className="px-5 py-2.5 rounded-full bg-caramel-500 text-cream-100 text-xs font-semibold hover:bg-caramel-600 transition-colors shadow-sm"
@@ -226,7 +242,10 @@ function CatalogBody({ initialSettings, initialCategories, initialProducts }: Pr
                 >
                   {/* Photo & Badge */}
                   <div>
-                    <div className="aspect-[4/3] bg-oat-100 overflow-hidden relative">
+                    <Link
+                      href={`/produk/${prod.slug}`}
+                      className="block aspect-[4/3] bg-oat-100 overflow-hidden relative"
+                    >
                       {prod.main_image ? (
                         <img
                           src={prod.main_image}
@@ -260,16 +279,18 @@ function CatalogBody({ initialSettings, initialCategories, initialProducts }: Pr
                           <span>{t.catalog.preorderDays} {prod.min_preorder_days} {t.catalog.days}</span>
                         </span>
                       )}
-                    </div>
+                    </Link>
 
                     {/* Content Details */}
                     <div className="p-5 space-y-2">
                       <span className="text-[10px] font-bold uppercase tracking-widest text-sage-600 block">
                         {prod.category?.name || 'Artisan'}
                       </span>
-                      <h3 className="font-serif text-lg font-bold text-cocoa-800 group-hover:text-caramel-600 transition-colors line-clamp-1">
-                        {prod.name}
-                      </h3>
+                      <Link href={`/produk/${prod.slug}`}>
+                        <h3 className="font-serif text-lg font-bold text-cocoa-800 group-hover:text-caramel-600 transition-colors line-clamp-1">
+                          {prod.name}
+                        </h3>
+                      </Link>
                       <p className="text-xs text-espresso-900/70 line-clamp-2 font-light leading-relaxed">
                         {prod.short_description || prod.description}
                       </p>
@@ -283,8 +304,8 @@ function CatalogBody({ initialSettings, initialCategories, initialProducts }: Pr
                     </div>
                   </div>
 
-                  {/* Price & CTA Button */}
-                  <div className="p-5 pt-0 border-t border-oat-100 mt-3 flex items-center justify-between">
+                  {/* Price & CTA Buttons */}
+                  <div className="p-5 pt-0 border-t border-oat-100 mt-3 flex items-center justify-between gap-2">
                     <div>
                       <span className="text-[10px] text-espresso-900/60 block">{t.catalog.startingFrom}</span>
                       <span className="font-serif text-base font-bold text-cocoa-900">
@@ -292,14 +313,24 @@ function CatalogBody({ initialSettings, initialCategories, initialProducts }: Pr
                       </span>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setActiveProductForModal(prod)}
-                      className="px-4 py-2 rounded-full bg-caramel-500 hover:bg-caramel-600 text-cream-100 text-xs font-semibold transition-all shadow-sm flex items-center gap-1.5 focus:ring-2 focus:ring-caramel-400"
-                    >
-                      <ShoppingBag className="w-3.5 h-3.5" />
-                      <span>{t.catalog.detailAndOrder}</span>
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <Link
+                        href={`/produk/${prod.slug}`}
+                        className="p-2 rounded-full border border-oat-300 hover:bg-oat-100 text-cocoa-800 text-xs transition-colors"
+                        title="Lihat Detail Halaman"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </Link>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveProductForModal(prod)}
+                        className="px-3.5 py-2 rounded-full bg-caramel-500 hover:bg-caramel-600 text-cream-100 text-xs font-semibold transition-all shadow-sm flex items-center gap-1.5 focus:ring-2 focus:ring-caramel-400"
+                      >
+                        <ShoppingBag className="w-3.5 h-3.5" />
+                        <span>{t.catalog.detailAndOrder}</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -339,22 +370,5 @@ function CatalogBody({ initialSettings, initialCategories, initialProducts }: Pr
       <CheckoutDrawer settings={settings} />
       <OrderConfirmationModal settings={settings} />
     </div>
-  );
-}
-
-export default function ProductCatalogClient(props: ProductCatalogClientProps) {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-cream-100 flex items-center justify-center">
-          <div className="text-sm font-serif text-cocoa-800 animate-pulse flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-caramel-600" />
-            <span>Memuat Katalog Aura Bakery...</span>
-          </div>
-        </div>
-      }
-    >
-      <CatalogBody {...props} />
-    </Suspense>
   );
 }

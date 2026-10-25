@@ -74,8 +74,8 @@ export default function HomePageClient({
               </span>
               <span className="text-cream-100/90 font-light hidden sm:inline">
                 {language === 'en'
-                  ? 'Bilingual (EN/ID) • Dynamic Currency Engine • Multi-Method Stripe Gateway • Automated Kitchen Lead-Times'
-                  : 'Bilingual (EN/ID) • Konversi Mata Uang • Stripe Payment Gateway • Kalkulasi Otomatis Pre-Order'}
+                  ? 'Bilingual (EN/ID) • Real-Time Currency Engine • QRIS, Transfer Bank & Online Gateway • Automated Kitchen Lead-Times'
+                  : 'Bilingual (EN/ID) • Konversi Mata Uang (IDR/USD) • QRIS, Transfer Bank & Payment Gateway • Kalkulasi Otomatis Pre-Order'}
               </span>
             </div>
             <Link
@@ -217,8 +217,8 @@ export default function HomePageClient({
                 </h3>
                 <p className="text-xs text-espresso-900/70 leading-relaxed font-light">
                   {language === 'en'
-                    ? 'Schedule your required delivery/pickup time slot with automated lead time rules and instant card/Apple Pay checkout.'
-                    : 'Tentukan tanggal pengambilan atau kirim alamat. Selesaikan pembayaran instan dengan kartu kredit atau transfer.'}
+                    ? 'Schedule your required delivery/pickup time slot with automated lead time rules and instant online checkout (Transfer, QRIS, & Card).'
+                    : 'Tentukan tanggal pengambilan atau kirim alamat. Selesaikan pembayaran mudah via Transfer Bank, QRIS, atau Kartu.'}
                 </p>
               </div>
 
@@ -350,7 +350,10 @@ export default function HomePageClient({
                     className="group bg-white rounded-3xl overflow-hidden border border-oat-200 shadow-sm hover:shadow-xl transition-all flex flex-col"
                   >
                     {/* Image */}
-                    <div className="aspect-[4/3] bg-oat-100 overflow-hidden relative">
+                    <Link
+                      href={`/produk/${prod.slug}`}
+                      className="aspect-[4/3] bg-oat-100 overflow-hidden relative block"
+                    >
                       {prod.main_image ? (
                         <img
                           src={prod.main_image}
@@ -367,7 +370,7 @@ export default function HomePageClient({
                           {prod.badge}
                         </span>
                       )}
-                    </div>
+                    </Link>
 
                     {/* Content */}
                     <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
@@ -375,9 +378,11 @@ export default function HomePageClient({
                         <span className="text-[11px] font-bold uppercase tracking-wider text-sage-600 block">
                           {prod.category?.name || 'Artisan Bakery'}
                         </span>
-                        <h3 className="font-serif text-xl font-bold text-cocoa-800 group-hover:text-caramel-600 transition-colors">
-                          {prod.name}
-                        </h3>
+                        <Link href={`/produk/${prod.slug}`}>
+                          <h3 className="font-serif text-xl font-bold text-cocoa-800 group-hover:text-caramel-600 transition-colors">
+                            {prod.name}
+                          </h3>
+                        </Link>
                         <p className="text-xs text-espresso-900/70 line-clamp-2 font-light leading-relaxed">
                           {prod.short_description || prod.description}
                         </p>
@@ -392,8 +397,8 @@ export default function HomePageClient({
                         </div>
 
                         <Link
-                          href="/produk"
-                          className="px-4 py-2 rounded-full bg-oat-200 hover:bg-caramel-500 hover:text-cream-100 text-cocoa-800 text-xs font-semibold transition-all"
+                          href={`/produk/${prod.slug}`}
+                          className="px-4 py-2 rounded-full bg-oat-200 hover:bg-caramel-500 hover:text-cream-100 text-cocoa-800 text-xs font-semibold transition-all shadow-xs"
                         >
                           {t.featured.viewDetail}
                         </Link>
@@ -427,7 +432,7 @@ export default function HomePageClient({
                     ))}
                   </div>
                   <p className="text-xs sm:text-sm text-espresso-900/80 italic font-serif leading-relaxed">
-                    &quot;The Valrhona chocolate cake was the absolute centerpiece of our corporate anniversary. The online checkout with Apple Pay took 30 seconds.&quot;
+                    &quot;The Valrhona chocolate cake was the absolute centerpiece of our corporate anniversary. The online checkout with seamless QRIS &amp; Card took under a minute.&quot;
                   </p>
                 </div>
                 <div className="border-t border-oat-200 pt-3 flex items-center justify-between text-xs">
