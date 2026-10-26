@@ -143,6 +143,7 @@ function initSchemaAndSeed(db: DatabaseSync) {
     CREATE TABLE IF NOT EXISTS orders (
       id TEXT PRIMARY KEY,
       order_number TEXT UNIQUE NOT NULL,
+      customer_id TEXT,
       customer_name TEXT NOT NULL,
       customer_whatsapp TEXT NOT NULL,
       order_type TEXT NOT NULL,
@@ -159,6 +160,8 @@ function initSchemaAndSeed(db: DatabaseSync) {
       payment_status TEXT NOT NULL,
       internal_notes TEXT,
       cancellation_reason TEXT,
+      idempotency_key TEXT,
+      public_token TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
@@ -198,6 +201,11 @@ function initSchemaAndSeed(db: DatabaseSync) {
       updated_at TEXT NOT NULL
     );
   `);
+
+  // Safe schema migrations for existing SQLite databases (Gate 0 & 2)
+  try { db.exec('ALTER TABLE orders ADD COLUMN customer_id TEXT'); } catch {}
+  try { db.exec('ALTER TABLE orders ADD COLUMN idempotency_key TEXT'); } catch {}
+  try { db.exec('ALTER TABLE orders ADD COLUMN public_token TEXT'); } catch {}
 
   // Check if business_settings has data; if not, seed initial data
   const checkSettings = db.prepare('SELECT count(*) as count FROM business_settings').get() as { count: number };

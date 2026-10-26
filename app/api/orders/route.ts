@@ -5,6 +5,10 @@ import { getAdminSession } from '@/lib/auth';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    const idempotencyHeader = req.headers.get('x-idempotency-key');
+    if (idempotencyHeader && !body.idempotency_key) {
+      body.idempotency_key = idempotencyHeader;
+    }
     const result = await createOrder(body);
 
     if (!result.success) {

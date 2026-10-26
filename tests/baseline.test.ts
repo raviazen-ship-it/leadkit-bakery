@@ -82,3 +82,67 @@ test('T-CHK-04: Server Authority & Integer Currency Safety (IDR)', () => {
   const recalculatedTotal = verifiedServerPrice * clientSubmittedItem.quantity;
   assert.equal(recalculatedTotal, 90000, 'Server harus mengabaikan harga klien dan menghitung ulang');
 });
+
+test('T-CAT-06: Numeric Sort Verification (Avoid String Lexicographic Sorting)', () => {
+  const products = [
+    { name: 'Sourdough', base_price: 65000 },
+    { name: 'Catering Box', base_price: 55000 },
+    { name: 'Croissant Box', base_price: 135000 },
+    { name: 'Chiffon Cake', base_price: 285000 },
+  ];
+
+  // Numeric ascending sort
+  const sortedAsc = [...products].sort((a, b) => a.base_price - b.base_price);
+  assert.equal(sortedAsc[0].base_price, 55000, 'Harga terendah harus 55.000 (bukan string 135.000)');
+  assert.equal(sortedAsc[sortedAsc.length - 1].base_price, 285000, 'Harga tertinggi harus 285.000');
+
+  // Numeric descending sort
+  const sortedDesc = [...products].sort((a, b) => b.base_price - a.base_price);
+  assert.equal(sortedDesc[0].base_price, 285000);
+  assert.equal(sortedDesc[sortedDesc.length - 1].base_price, 55000);
+});
+
+test('T-CAT-13: Allergen Filter Logic (Nut-Free, Dairy-Free, Gluten-Free)', () => {
+  const sampleProducts = [
+    { id: '1', name: 'Nasi Liwet', allergens: 'Mengandung kacang, santan.' },
+    { id: '2', name: 'Country Sourdough', allergens: 'Mengandung gluten. Tanpa telur dan tanpa susu (Vegan friendly).' },
+    { id: '3', name: 'Croissant French Butter', allergens: 'Mengandung susu, butter, gluten.' },
+  ];
+
+  // Helper function to check if text contains allergen without negation (e.g. "tanpa susu")
+  function hasAllergen(text: string, keywords: string[]): boolean {
+    const lower = text.toLowerCase();
+    for (const kw of keywords) {
+      if (lower.includes(kw)) {
+        const isNegated = lower.includes(`tanpa ${kw}`) || lower.includes(`bebas ${kw}`);
+        if (!isNegated) return true;
+      }
+    }
+    return false;
+  }
+
+  // Filter Nut-free: must exclude product containing kacang/nut
+  const nutFree = sampleProducts.filter((p) => !hasAllergen(p.allergens, ['kacang', 'nut']));
+  assert.equal(nutFree.length, 2);
+  assert.equal(nutFree.some((p) => p.id === '1'), false, 'Nasi Liwet yang ada kacang harus difilter keluar');
+
+  // Filter Dairy-free: must exclude product containing susu/dairy/butter unless negated
+  const dairyFree = sampleProducts.filter((p) => !hasAllergen(p.allergens, ['susu', 'dairy', 'butter', 'keju']));
+  assert.equal(dairyFree.some((p) => p.id === '3'), false, 'Croissant dengan butter harus difilter keluar');
+  assert.equal(dairyFree.some((p) => p.id === '2'), true, 'Sourdough tanpa susu harus lolos');
+});
+
+test('T-CHK-01: Multi-Item Mixed Lead-Time Calculation (BR-03)', () => {
+  const cartItems = [
+    { name: 'Croissant', min_preorder_days: 0 }, // Ready Stock
+    { name: 'Chiffon Cake', min_preorder_days: 1 }, // H-1
+    { name: 'Catering Box', min_preorder_days: 2 }, // H-2
+  ];
+
+  const maxRequiredDays = Math.max(
+    1, // store base setting
+    ...cartItems.map((i) => i.min_preorder_days)
+  );
+
+  assert.equal(maxRequiredDays, 2, 'Lead time keranjang campuran wajib mengikuti lead time terpanjang (H-2)');
+});

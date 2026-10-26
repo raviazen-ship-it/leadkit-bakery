@@ -614,6 +614,7 @@ export async function upsertCampaign(camp: Partial<Campaign>): Promise<Campaign>
 // 5. ORDERS & CHECKOUT (WITH STRICT SERVER VALIDATION)
 // -------------------------------------------------------------
 export interface CreateOrderInput {
+  customer_id?: string;
   customer_name: string;
   customer_whatsapp: string;
   order_type: 'pickup' | 'delivery';
@@ -623,6 +624,7 @@ export interface CreateOrderInput {
   customer_notes?: string;
   payment_method_id: string;
   payment_status?: 'Belum Dibayar' | 'Dibayar' | 'Dibatalkan';
+  idempotency_key?: string;
   items: Array<{
     product_id: string;
     variant_id: string;
@@ -635,6 +637,17 @@ export async function createOrder(
 ): Promise<{ success: boolean; order?: Order; error?: string }> {
   const db = getSQLiteDb();
   const settings = await getBusinessSettings();
+
+  // Idempotency check (CHK-17)
+  if (input.idempotency_key) {
+    const existing = db.prepare('SELECT id FROM orders WHERE idempotency_key = ?').get(input.idempotency_key) as any;
+    if (existing && existing.id) {
+      const existingOrder = await getOrder(existing.id);
+      if (existingOrder) {
+        return { success: true, order: existingOrder };
+      }
+    }
+  }
 
   // Basic Validation
   if (!input.customer_name?.trim()) {
@@ -748,36 +761,45 @@ export async function createOrder(
 
   const totalAmount = subtotal + deliveryFee;
 
-  // Resolve payment method name & initial payment status
-  const isGateway = input.payment_method_id === 'gateway_stripe' || input.payment_method_id.startsWith('gateway_');
-  const paymentMethod = settings.payment_methods.find((p) => p.id === input.payment_method_id);
-  const paymentMethodName = isGateway
-    ? 'Online Payment Gateway (Stripe Verified)'
-    : paymentMethod
-    ? paymentMethod.name
-    : input.payment_method_id;
+  // Resolve payment method name & initial payment status (D-01, D-04, PAY-02)
+  let paymentMethodName = input.payment_method_id;
+  if (input.payment_method_id === 'gateway_qris') {
+    paymentMethodName = 'QRIS Instan (Terverifikasi Otomatis)';
+  } else if (input.payment_method_id === 'bank_bca') {
+    paymentMethodName = 'Transfer Bank BCA (1234-5678-90)';
+  } else if (input.payment_method_id === 'bank_mandiri') {
+    paymentMethodName = 'Transfer Bank Mandiri (987-654-321-0123)';
+  } else if (input.payment_method_id === 'pickup_cash') {
+    paymentMethodName = 'Bayar di Counter Toko (Pick-up)';
+  } else {
+    const paymentMethod = settings.payment_methods.find((p) => p.id === input.payment_method_id);
+    if (paymentMethod) paymentMethodName = paymentMethod.name;
+  }
 
-  const initialPaymentStatus = input.payment_status || (isGateway ? 'Dibayar' : 'Belum Dibayar');
+  const isAutoPaid = input.payment_status === 'Dibayar';
+  const initialPaymentStatus = isAutoPaid ? 'Dibayar' : (input.payment_status || 'Belum Dibayar');
 
   const orderId = `ord_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
   const orderNumber = generateOrderNumber();
+  const publicToken = `tok_${Date.now()}_${Math.random().toString(36).substring(2, 12)}`;
   const now = new Date().toISOString();
 
   // Save order to SQLite
   const insertOrder = db.prepare(`
     INSERT INTO orders (
-      id, order_number, customer_name, customer_whatsapp, order_type, delivery_address,
+      id, order_number, customer_id, customer_name, customer_whatsapp, order_type, delivery_address,
       fulfillment_date, fulfillment_time_slot, customer_notes, subtotal, delivery_fee,
       total_amount, payment_method_id, payment_method_name, order_status, payment_status,
-      internal_notes, cancellation_reason, created_at, updated_at
+      internal_notes, cancellation_reason, idempotency_key, public_token, created_at, updated_at
     ) VALUES (
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     )
   `);
 
   insertOrder.run(
     orderId,
     orderNumber,
+    input.customer_id || null,
     input.customer_name.trim(),
     input.customer_whatsapp.trim(),
     input.order_type,
@@ -794,6 +816,8 @@ export async function createOrder(
     initialPaymentStatus,
     '',
     '',
+    input.idempotency_key || null,
+    publicToken,
     now,
     now
   );
@@ -940,6 +964,7 @@ export async function getOrder(idOrNumber: string): Promise<Order | null> {
   return {
     id: o.id,
     order_number: o.order_number,
+    customer_id: o.customer_id || undefined,
     customer_name: o.customer_name,
     customer_whatsapp: o.customer_whatsapp,
     order_type: o.order_type,

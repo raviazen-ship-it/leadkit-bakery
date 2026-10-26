@@ -11,13 +11,15 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
-  CreditCard,
   ShieldCheck,
   Lock,
+  Gift,
+  QrCode,
+  Building2,
+  AlertTriangle,
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { formatIndonesianDate } from '@/lib/utils';
 import { BusinessSettings } from '@/types';
 import PaymentGatewayModal from '@/components/PaymentGatewayModal';
 
@@ -38,15 +40,31 @@ export default function CheckoutDrawer({ settings }: CheckoutDrawerProps) {
 
   const { t, formatMoney, language } = useLanguage();
 
+  // Customer Details
   const [customerName, setCustomerName] = useState('');
   const [customerWhatsapp, setCustomerWhatsapp] = useState('');
-  const [orderType, setOrderType] = useState<'pickup' | 'delivery'>('pickup');
-  const [deliveryAddress, setDeliveryAddress] = useState('');
-  const [customerNotes, setCustomerNotes] = useState('');
-  const [timeSlot, setTimeSlot] = useState('10.00 - 12.00');
-  const [paymentMethodId, setPaymentMethodId] = useState('gateway_stripe');
 
-  // Gateway Modal State
+  // Different Recipient / Surprise Gift (CHK-07, CHK-08)
+  const [isDifferentRecipient, setIsDifferentRecipient] = useState(false);
+  const [recipientName, setRecipientName] = useState('');
+  const [recipientPhone, setRecipientPhone] = useState('');
+  const [isSurprise, setIsSurprise] = useState(false);
+  const [giftCardMessage, setGiftCardMessage] = useState('');
+
+  // Fulfillment Details
+  const [orderType, setOrderType] = useState<'pickup' | 'delivery'>('pickup');
+  const [deliveryCity, setDeliveryCity] = useState('Jakarta Selatan');
+  const [deliveryDistrict, setDeliveryDistrict] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [deliveryNotes, setDeliveryNotes] = useState('');
+  const [customerNotes, setCustomerNotes] = useState('');
+  const [timeSlot, setTimeSlot] = useState('11.00 - 13.00');
+
+  // Allergen Agreement (CHK-15, F-21)
+  const [confirmedAllergens, setConfirmedAllergens] = useState(false);
+
+  // Payment Selection
+  const [paymentMethodId, setPaymentMethodId] = useState('gateway_qris');
   const [isGatewayOpen, setIsGatewayOpen] = useState(false);
 
   // Calculate earliest eligible date based on products' pre-order lead time
@@ -67,7 +85,7 @@ export default function CheckoutDrawer({ settings }: CheckoutDrawerProps) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Pre-fill logged in customer profile
+  // Pre-fill logged in customer profile if available
   useEffect(() => {
     async function loadCustomerProfile() {
       try {
@@ -97,50 +115,43 @@ export default function CheckoutDrawer({ settings }: CheckoutDrawerProps) {
   const totalAmount = subtotal + calculatedDeliveryFee;
 
   const timeSlots = [
-    '09.00 - 11.00',
-    '11.00 - 13.00',
-    '13.00 - 15.00',
-    '15.00 - 17.00',
-    '17.00 - 19.00',
-  ];
-
-  const manualMethods = settings?.payment_methods?.filter((p) => p.enabled) || [
-    {
-      id: 'bank_bca',
-      name: 'Bank Transfer (BCA)',
-      account_number: '1234567890',
-      account_name: 'Aura Bakery',
-      enabled: true,
-    },
-    {
-      id: 'pickup_cash',
-      name: 'Pay Upon Counter Pickup',
-      account_number: '',
-      account_name: '',
-      enabled: true,
-    },
+    '09.00 - 11.00 WIB',
+    '11.00 - 13.00 WIB',
+    '13.00 - 15.00 WIB',
+    '15.00 - 17.00 WIB',
+    '17.00 - 19.00 WIB',
   ];
 
   const validateForm = () => {
     setErrorMsg(null);
     if (!customerName.trim()) {
-      setErrorMsg(language === 'en' ? 'Full name is required.' : 'Nama lengkap pemesan wajib diisi.');
+      setErrorMsg('Nama lengkap pemesan wajib diisi.');
       return false;
     }
     if (!customerWhatsapp.trim()) {
-      setErrorMsg(language === 'en' ? 'Phone or WhatsApp number is required.' : 'Nomor WhatsApp aktif wajib diisi.');
+      setErrorMsg('Nomor WhatsApp aktif wajib diisi.');
       return false;
     }
+    if (isDifferentRecipient) {
+      if (!recipientName.trim()) {
+        setErrorMsg('Nama penerima hadiah wajib diisi.');
+        return false;
+      }
+      if (!recipientPhone.trim()) {
+        setErrorMsg('Nomor WhatsApp penerima hadiah wajib diisi.');
+        return false;
+      }
+    }
     if (orderType === 'delivery' && !deliveryAddress.trim()) {
-      setErrorMsg(
-        language === 'en'
-          ? 'Complete delivery address is required for Delivery.'
-          : 'Alamat pengiriman lengkap wajib diisi untuk opsi Delivery.'
-      );
+      setErrorMsg('Alamat pengiriman lengkap wajib diisi untuk opsi Delivery.');
       return false;
     }
     if (!fulfillmentDate) {
-      setErrorMsg(language === 'en' ? 'Fulfillment date is required.' : 'Tanggal pesanan wajib dipilih.');
+      setErrorMsg('Tanggal pesanan wajib dipilih.');
+      return false;
+    }
+    if (!confirmedAllergens) {
+      setErrorMsg('Silakan centang persetujuan informasi bahan & alergen sebelum melanjutkan.');
       return false;
     }
     return true;
@@ -155,20 +166,31 @@ export default function CheckoutDrawer({ settings }: CheckoutDrawerProps) {
     setErrorMsg(null);
 
     try {
-      const notesWithRef = gatewayRef
-        ? `${customerNotes ? customerNotes + ' | ' : ''}Payment: ${gatewayRef} (${methodDetails || 'Card'})`
-        : customerNotes;
+      // Idempotency Key (CHK-17)
+      const idempotencyKey = `ord_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+      const fullAddress = orderType === 'delivery'
+        ? `${deliveryAddress.trim()}, Kec. ${deliveryDistrict || '-'}, ${deliveryCity}${deliveryNotes ? ` (Patokan: ${deliveryNotes})` : ''}`
+        : '';
+
+      const compositeNotes = [
+        customerNotes ? `Catatan: ${customerNotes}` : null,
+        isDifferentRecipient ? `Hadiah untuk: ${recipientName} (${recipientPhone})${isSurprise ? ' [KEJUTAN - Sembunyikan Harga]' : ''}` : null,
+        giftCardMessage ? `Kartu Ucapan: "${giftCardMessage}"` : null,
+        gatewayRef ? `Ref Pembayaran: ${gatewayRef} (${methodDetails || 'Online'})` : null,
+      ].filter(Boolean).join(' | ');
 
       const payload = {
         customer_name: customerName,
         customer_whatsapp: customerWhatsapp,
         order_type: orderType,
-        delivery_address: orderType === 'delivery' ? deliveryAddress : '',
+        delivery_address: fullAddress,
         fulfillment_date: fulfillmentDate,
         fulfillment_time_slot: timeSlot,
-        customer_notes: notesWithRef,
+        customer_notes: compositeNotes,
         payment_method_id: methodId,
         payment_status: gatewayRef ? 'Dibayar' : 'Belum Dibayar',
+        idempotency_key: idempotencyKey,
         items: items.map((i) => ({
           product_id: i.product.id,
           variant_id: i.selectedVariant.id,
@@ -178,14 +200,17 @@ export default function CheckoutDrawer({ settings }: CheckoutDrawerProps) {
 
       const res = await fetch('/api/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Idempotency-Key': idempotencyKey,
+        },
         body: JSON.stringify(payload),
       });
 
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to submit order.');
+        throw new Error(data.error || 'Gagal memproses pesanan.');
       }
 
       // Order created successfully!
@@ -201,7 +226,7 @@ export default function CheckoutDrawer({ settings }: CheckoutDrawerProps) {
 
       setCompletedOrder(returnedOrder);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to process order. Please check your connection.');
+      setErrorMsg(err.message || 'Gagal memproses pesanan. Silakan periksa koneksi Anda.');
     } finally {
       setLoading(false);
     }
@@ -211,7 +236,7 @@ export default function CheckoutDrawer({ settings }: CheckoutDrawerProps) {
     e.preventDefault();
     if (!validateForm()) return;
 
-    if (paymentMethodId === 'gateway_stripe') {
+    if (paymentMethodId === 'gateway_qris') {
       setIsGatewayOpen(true);
     } else {
       executeOrderSubmission(paymentMethodId);
@@ -219,7 +244,7 @@ export default function CheckoutDrawer({ settings }: CheckoutDrawerProps) {
   };
 
   const handleGatewaySuccess = (transactionRef: string, methodDetails: string) => {
-    executeOrderSubmission('gateway_stripe', transactionRef, methodDetails);
+    executeOrderSubmission(paymentMethodId, transactionRef, methodDetails);
   };
 
   return (
@@ -243,7 +268,7 @@ export default function CheckoutDrawer({ settings }: CheckoutDrawerProps) {
                     openCart();
                   }}
                   className="p-1 rounded text-cocoa-800 hover:bg-oat-200 transition-colors mr-1"
-                  aria-label="Back to cart"
+                  aria-label="Kembali ke keranjang"
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </button>
@@ -253,7 +278,7 @@ export default function CheckoutDrawer({ settings }: CheckoutDrawerProps) {
               </div>
               <button
                 onClick={closeCheckout}
-                aria-label="Close Checkout"
+                aria-label="Tutup Checkout"
                 className="p-1.5 rounded-lg text-cocoa-800 hover:bg-oat-200 transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -263,8 +288,8 @@ export default function CheckoutDrawer({ settings }: CheckoutDrawerProps) {
             {/* Form Body */}
             <form onSubmit={handleFormSubmit} className="flex-1 overflow-y-auto p-5 space-y-6">
               {errorMsg && (
-                <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm flex items-start gap-2.5">
-                  <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                   <span>{errorMsg}</span>
                 </div>
               )}
@@ -272,16 +297,16 @@ export default function CheckoutDrawer({ settings }: CheckoutDrawerProps) {
               {/* 1. Customer Details */}
               <div className="space-y-3">
                 <h3 className="font-serif text-base font-bold text-cocoa-800 border-b border-oat-200 pb-1.5">
-                  {t.checkout.section1}
+                  1. Informasi Pemesan
                 </h3>
                 <div>
                   <label className="block text-xs font-semibold text-espresso-900 mb-1">
-                    {t.checkout.fullName}
+                    Nama Lengkap Pemesan *
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder={t.checkout.fullNamePlaceholder}
+                    placeholder="Contoh: Sinta Maharani"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-oat-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-caramel-500"
@@ -290,26 +315,99 @@ export default function CheckoutDrawer({ settings }: CheckoutDrawerProps) {
 
                 <div>
                   <label className="block text-xs font-semibold text-espresso-900 mb-1">
-                    {t.checkout.whatsapp}
+                    Nomor WhatsApp Pemesan *
                   </label>
                   <input
                     type="tel"
                     required
-                    placeholder={t.checkout.whatsappPlaceholder}
+                    placeholder="08xxxxxxxxxx"
                     value={customerWhatsapp}
                     onChange={(e) => setCustomerWhatsapp(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-oat-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-caramel-500"
                   />
                   <span className="text-[11px] text-espresso-900/60 block mt-1">
-                    {t.checkout.whatsappNotice}
+                    Konfirmasi pesanan dan tautan resi digital akan dikirimkan ke nomor ini.
                   </span>
+                </div>
+
+                {/* Recipient / Surprise Gift Option (CHK-07, CHK-08) */}
+                <div className="pt-2">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-cocoa-900 select-none bg-amber-50/60 p-2.5 rounded-xl border border-amber-200/60">
+                    <input
+                      type="checkbox"
+                      checked={isDifferentRecipient}
+                      onChange={(e) => setIsDifferentRecipient(e.target.checked)}
+                      className="rounded text-caramel-600 focus:ring-caramel-500 border-oat-300"
+                    />
+                    <Gift className="w-4 h-4 text-caramel-600 shrink-0" />
+                    <span>Kirim sebagai Hadiah / Penerima Berbeda</span>
+                  </label>
+
+                  {isDifferentRecipient && (
+                    <div className="p-3.5 bg-white rounded-xl border border-amber-300 space-y-3 mt-2 animate-fadeIn shadow-xs">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-espresso-900 mb-1">
+                          Nama Penerima Hadiah *
+                        </label>
+                        <input
+                          type="text"
+                          required={isDifferentRecipient}
+                          placeholder="Nama sahabat / keluarga penerima"
+                          value={recipientName}
+                          onChange={(e) => setRecipientName(e.target.value)}
+                          className="w-full px-3 py-2 text-xs rounded-lg border border-oat-300 bg-white focus:outline-none focus:ring-1 focus:ring-caramel-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-espresso-900 mb-1">
+                          Nomor WhatsApp Penerima *
+                        </label>
+                        <input
+                          type="tel"
+                          required={isDifferentRecipient}
+                          placeholder="08xxxxxxxxxx (untuk kurir mengantar)"
+                          value={recipientPhone}
+                          onChange={(e) => setRecipientPhone(e.target.value)}
+                          className="w-full px-3 py-2 text-xs rounded-lg border border-oat-300 bg-white focus:outline-none focus:ring-1 focus:ring-caramel-500"
+                        />
+                      </div>
+
+                      <label className="flex items-center gap-2 cursor-pointer text-[11px] font-medium text-cocoa-900">
+                        <input
+                          type="checkbox"
+                          checked={isSurprise}
+                          onChange={(e) => setIsSurprise(e.target.checked)}
+                          className="rounded text-caramel-600"
+                        />
+                        <span>🤫 Kejutan (Sembunyikan harga pada invoice & slip pengantaran)</span>
+                      </label>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-espresso-900 mb-1">
+                          Pesan Kartu Ucapan (Maks. 150 Karakter):
+                        </label>
+                        <textarea
+                          rows={2}
+                          maxLength={150}
+                          placeholder="Selamat Ulang Tahun! Semoga bahagia dan sehat selalu."
+                          value={giftCardMessage}
+                          onChange={(e) => setGiftCardMessage(e.target.value)}
+                          className="w-full px-3 py-2 text-xs rounded-lg border border-oat-300 bg-white focus:outline-none focus:ring-1 focus:ring-caramel-500"
+                        />
+                        <div className="text-[10px] text-espresso-900/50 text-right mt-0.5">
+                          {giftCardMessage.length}/150 karakter
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* 2. Fulfillment Method */}
+              {/* 2. Fulfillment Method (CHK-05, CHK-06) */}
               <div className="space-y-3">
                 <h3 className="font-serif text-base font-bold text-cocoa-800 border-b border-oat-200 pb-1.5">
-                  {t.checkout.section2}
+                  2. Metode Pengambilan / Pengiriman
                 </h3>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -324,10 +422,10 @@ export default function CheckoutDrawer({ settings }: CheckoutDrawerProps) {
                   >
                     <div className="flex items-center gap-2">
                       <Store className="w-4 h-4 text-caramel-600" />
-                      <span className="text-xs font-bold text-cocoa-800">{t.checkout.pickup}</span>
+                      <span className="text-xs font-bold text-cocoa-800">Ambil di Toko (Pick-up)</span>
                     </div>
                     <span className="text-[11px] text-espresso-900/70">
-                      {t.checkout.pickupDesc}
+                      Gratis · Counter Toko Senopati
                     </span>
                   </button>
 
@@ -342,45 +440,90 @@ export default function CheckoutDrawer({ settings }: CheckoutDrawerProps) {
                   >
                     <div className="flex items-center gap-2">
                       <Truck className="w-4 h-4 text-caramel-600" />
-                      <span className="text-xs font-bold text-cocoa-800">{t.checkout.delivery}</span>
+                      <span className="text-xs font-bold text-cocoa-800">Kurir Pengantaran</span>
                     </div>
                     <span className="text-[11px] text-espresso-900/70">
-                      {isFreeDelivery ? t.checkout.freeDelivery : formatMoney(deliveryFeeBase)}
+                      {isFreeDelivery ? 'Gratis Ongkir' : formatMoney(deliveryFeeBase)}
                     </span>
                   </button>
                 </div>
 
                 {orderType === 'delivery' && (
-                  <div className="space-y-2 pt-2 animate-fadeIn">
-                    <label className="block text-xs font-semibold text-espresso-900">
-                      {t.checkout.deliveryAddress}
-                    </label>
-                    <textarea
-                      rows={3}
-                      required
-                      placeholder={t.checkout.deliveryAddressPlaceholder}
-                      value={deliveryAddress}
-                      onChange={(e) => setDeliveryAddress(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-oat-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-caramel-500"
-                    />
-                    <div className="p-2.5 rounded-lg bg-oat-100 text-[11px] text-cocoa-800/80">
-                      📍 {t.checkout.deliveryAreaNotice} {settings?.delivery_areas || 'Metro area & suburbs.'}
+                  <div className="space-y-2.5 pt-2 animate-fadeIn bg-white p-3.5 rounded-xl border border-oat-300">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-espresso-900 mb-1">
+                          Kota / Wilayah:
+                        </label>
+                        <select
+                          value={deliveryCity}
+                          onChange={(e) => setDeliveryCity(e.target.value)}
+                          className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-oat-300 bg-white"
+                        >
+                          <option value="Jakarta Selatan">Jakarta Selatan</option>
+                          <option value="Jakarta Pusat">Jakarta Pusat</option>
+                          <option value="Jakarta Barat">Jakarta Barat</option>
+                          <option value="Jakarta Timur">Jakarta Timur</option>
+                          <option value="Jakarta Utara">Jakarta Utara</option>
+                          <option value="Tangerang Selatan">Tangerang Selatan</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-espresso-900 mb-1">
+                          Kecamatan & Kode Pos:
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Cth: Kebayoran Baru 12190"
+                          value={deliveryDistrict}
+                          onChange={(e) => setDeliveryDistrict(e.target.value)}
+                          className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-oat-300 bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-espresso-900 mb-1">
+                        Alamat Lengkap Jalan, No Rumah/Kantor *
+                      </label>
+                      <textarea
+                        rows={2}
+                        required
+                        placeholder="Nama jalan, nomor rumah, RT/RW, nama komplek/gedung kantor"
+                        value={deliveryAddress}
+                        onChange={(e) => setDeliveryAddress(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-oat-300 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-caramel-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-espresso-900 mb-1">
+                        Patokan Pengantaran Kurir (Opsional):
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Cth: Pagar hitam seberang minimarket, titip di pos sekuriti"
+                        value={deliveryNotes}
+                        onChange={(e) => setDeliveryNotes(e.target.value)}
+                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-oat-300 bg-white"
+                      />
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* 3. Schedule & Time Slot */}
+              {/* 3. Schedule & Time Slot (OPS-01, BR-01) */}
               <div className="space-y-3">
                 <h3 className="font-serif text-base font-bold text-cocoa-800 border-b border-oat-200 pb-1.5">
-                  {t.checkout.section3}
+                  3. Tanggal & Slot Waktu (WIB)
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-espresso-900 mb-1 flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5 text-caramel-600" />
-                      <span>{t.checkout.date}</span>
+                      <span>Tanggal Dibutuhkan *</span>
                     </label>
                     <input
                       type="date"
@@ -391,14 +534,14 @@ export default function CheckoutDrawer({ settings }: CheckoutDrawerProps) {
                       className="w-full px-3.5 py-2 rounded-xl border border-oat-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-caramel-500"
                     />
                     <span className="text-[10px] text-espresso-900/60 block mt-1">
-                      {t.checkout.minLeadNotice} {maxPreorderDays} {t.catalog.days}.
+                      Lead time minimal: {maxPreorderDays} hari. Cutoff: 15.00 WIB.
                     </span>
                   </div>
 
                   <div>
                     <label className="block text-xs font-semibold text-espresso-900 mb-1 flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5 text-caramel-600" />
-                      <span>{t.checkout.timeSlot}</span>
+                      <span>Slot Waktu Pengantaran/Pickup *</span>
                     </label>
                     <select
                       value={timeSlot}
@@ -415,17 +558,17 @@ export default function CheckoutDrawer({ settings }: CheckoutDrawerProps) {
                 </div>
               </div>
 
-              {/* 4. Payment Method & Online Gateway */}
+              {/* 4. Payment Method (D-01, D-04, PAY-02) */}
               <div className="space-y-3">
                 <h3 className="font-serif text-base font-bold text-cocoa-800 border-b border-oat-200 pb-1.5">
-                  {t.checkout.section4}
+                  4. Metode Pembayaran Resmi
                 </h3>
 
-                <div className="space-y-2.5">
-                  {/* Option A: Online Payment Gateway (Recommended) */}
+                <div className="space-y-2">
+                  {/* Option 1: QRIS Instan */}
                   <label
                     className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ${
-                      paymentMethodId === 'gateway_stripe'
+                      paymentMethodId === 'gateway_qris'
                         ? 'border-caramel-500 bg-caramel-50/70 ring-2 ring-caramel-400'
                         : 'border-oat-200 bg-white hover:border-oat-300'
                     }`}
@@ -433,103 +576,145 @@ export default function CheckoutDrawer({ settings }: CheckoutDrawerProps) {
                     <input
                       type="radio"
                       name="payment_method"
-                      value="gateway_stripe"
-                      checked={paymentMethodId === 'gateway_stripe'}
-                      onChange={() => setPaymentMethodId('gateway_stripe')}
+                      value="gateway_qris"
+                      checked={paymentMethodId === 'gateway_qris'}
+                      onChange={() => setPaymentMethodId('gateway_qris')}
                       className="mt-1 text-caramel-600 focus:ring-caramel-500"
                     />
-                    <div className="flex-1 space-y-1.5">
+                    <div className="flex-1 space-y-1">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-cocoa-900 flex items-center gap-1.5">
-                          <CreditCard className="w-4 h-4 text-caramel-600" />
-                          <span>{t.checkout.gatewayOption}</span>
+                          <QrCode className="w-4 h-4 text-caramel-600" />
+                          <span>QRIS Instan (Semua e-Wallet & m-Banking)</span>
                         </span>
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-300">
-                          <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                          <span>Instant</span>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-300">
+                          Rekomendasi
                         </span>
                       </div>
                       <p className="text-[11px] text-espresso-900/70">
-                        {t.checkout.gatewayDesc}
+                        Scan otomatis via BCA, Mandiri, BRI, GoPay, OVO, ShopeePay, Dana.
                       </p>
-                      {/* Supported Card Badges */}
-                      <div className="flex items-center gap-1.5 pt-0.5">
-                        <span className="px-1.5 py-0.5 rounded bg-blue-900 text-white font-mono text-[9px] font-bold">VISA</span>
-                        <span className="px-1.5 py-0.5 rounded bg-red-600 text-white font-mono text-[9px] font-bold">MC</span>
-                        <span className="px-1.5 py-0.5 rounded bg-blue-500 text-white font-mono text-[9px] font-bold">AMEX</span>
-                        <span className="px-1.5 py-0.5 rounded bg-gray-900 text-white font-sans text-[9px] font-bold"> Pay</span>
-                        <span className="px-1.5 py-0.5 rounded bg-gray-200 text-gray-800 font-sans text-[9px] font-bold">G Pay</span>
-                      </div>
                     </div>
                   </label>
 
-                  {/* Option B: Manual Methods */}
-                  {manualMethods.map((pm) => (
-                    <label
-                      key={pm.id}
-                      className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                        paymentMethodId === pm.id
-                          ? 'border-caramel-500 bg-caramel-50/40 ring-1 ring-caramel-400'
-                          : 'border-oat-200 bg-white hover:border-oat-300'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="payment_method"
-                        value={pm.id}
-                        checked={paymentMethodId === pm.id}
-                        onChange={() => setPaymentMethodId(pm.id)}
-                        className="mt-1 text-caramel-600 focus:ring-caramel-500"
-                      />
-                      <div>
-                        <span className="text-xs font-bold text-cocoa-800 block">
-                          {pm.name}
-                        </span>
-                        {pm.account_number && (
-                          <span className="text-[11px] text-espresso-900/70 block mt-0.5">
-                            Account: {pm.account_number} ({pm.account_name})
-                          </span>
-                        )}
-                      </div>
-                    </label>
-                  ))}
+                  {/* Option 2: Transfer Bank BCA */}
+                  <label
+                    className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                      paymentMethodId === 'bank_bca'
+                        ? 'border-caramel-500 bg-caramel-50/40 ring-1 ring-caramel-400'
+                        : 'border-oat-200 bg-white hover:border-oat-300'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="payment_method"
+                      value="bank_bca"
+                      checked={paymentMethodId === 'bank_bca'}
+                      onChange={() => setPaymentMethodId('bank_bca')}
+                      className="mt-1 text-caramel-600 focus:ring-caramel-500"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-cocoa-800 flex items-center gap-1.5">
+                        <Building2 className="w-4 h-4 text-blue-700" />
+                        <span>Transfer Bank BCA (1234-5678-90)</span>
+                      </span>
+                      <span className="text-[11px] text-espresso-900/70 block mt-0.5">
+                        a/n Aura Artisan Bakery & Catering
+                      </span>
+                    </div>
+                  </label>
+
+                  {/* Option 3: Transfer Mandiri */}
+                  <label
+                    className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                      paymentMethodId === 'bank_mandiri'
+                        ? 'border-caramel-500 bg-caramel-50/40 ring-1 ring-caramel-400'
+                        : 'border-oat-200 bg-white hover:border-oat-300'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="payment_method"
+                      value="bank_mandiri"
+                      checked={paymentMethodId === 'bank_mandiri'}
+                      onChange={() => setPaymentMethodId('bank_mandiri')}
+                      className="mt-1 text-caramel-600 focus:ring-caramel-500"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-cocoa-800 flex items-center gap-1.5">
+                        <Building2 className="w-4 h-4 text-amber-700" />
+                        <span>Transfer Bank Mandiri (987-654-321-0123)</span>
+                      </span>
+                      <span className="text-[11px] text-espresso-900/70 block mt-0.5">
+                        a/n Aura Artisan Bakery & Catering
+                      </span>
+                    </div>
+                  </label>
+
+                  {/* Option 4: Bayar di Counter */}
+                  <label
+                    className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                      paymentMethodId === 'pickup_cash'
+                        ? 'border-caramel-500 bg-caramel-50/40 ring-1 ring-caramel-400'
+                        : 'border-oat-200 bg-white hover:border-oat-300'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="payment_method"
+                      value="pickup_cash"
+                      checked={paymentMethodId === 'pickup_cash'}
+                      onChange={() => setPaymentMethodId('pickup_cash')}
+                      className="mt-1 text-caramel-600 focus:ring-caramel-500"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-cocoa-800 block">
+                        Bayar saat Pengambilan di Counter Toko
+                      </span>
+                      <span className="text-[11px] text-espresso-900/70 block mt-0.5">
+                        Khusus metode Pick-up di Toko (Cash / Debit / QRIS EDC).
+                      </span>
+                    </div>
+                  </label>
                 </div>
               </div>
 
-              {/* 5. Special Notes */}
-              <div className="space-y-2">
-                <label className="block text-xs font-semibold text-espresso-900">
-                  {t.checkout.section5}
+              {/* 5. Allergen & Policy Agreement (CHK-15, F-21) */}
+              <div className="pt-2">
+                <label className="flex items-start gap-2.5 cursor-pointer text-xs font-medium text-cocoa-900 bg-amber-50/70 p-3 rounded-xl border border-amber-200">
+                  <input
+                    type="checkbox"
+                    required
+                    checked={confirmedAllergens}
+                    onChange={(e) => setConfirmedAllergens(e.target.checked)}
+                    className="mt-0.5 rounded text-caramel-600 focus:ring-caramel-500 border-oat-300"
+                  />
+                  <span>
+                    Saya telah membaca informasi bahan, petunjuk alergen & menyetujui kebijakan pemesanan dan pembatalan Aura Bakery.
+                  </span>
                 </label>
-                <textarea
-                  rows={2}
-                  placeholder={t.checkout.notesPlaceholder}
-                  value={customerNotes}
-                  onChange={(e) => setCustomerNotes(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-oat-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-caramel-500"
-                />
               </div>
 
               {/* Order Cost Summary */}
               <div className="p-4 rounded-2xl bg-white border border-oat-200 space-y-2.5 shadow-sm">
                 <div className="flex justify-between text-xs text-espresso-900/70">
                   <span>
-                    {t.checkout.summaryItems} ({items.reduce((s, i) => s + i.quantity, 0)} {t.cart.itemCount})
+                    Subtotal ({items.reduce((s, i) => s + i.quantity, 0)} item)
                   </span>
                   <span className="font-semibold text-cocoa-800">{formatMoney(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-xs text-espresso-900/70">
-                  <span>{t.checkout.summaryDelivery}</span>
+                  <span>Biaya Pengantaran</span>
                   <span className="font-semibold text-cocoa-800">
                     {orderType === 'delivery'
                       ? isFreeDelivery
-                        ? t.checkout.freeDelivery
+                        ? 'Gratis Ongkir'
                         : formatMoney(deliveryFeeBase)
-                      : t.checkout.pickupFree}
+                      : 'Gratis (Pick-up)'}
                   </span>
                 </div>
                 <div className="pt-2 border-t border-oat-100 flex justify-between items-center text-sm">
-                  <span className="font-serif font-bold text-cocoa-800">{t.checkout.grandTotal}</span>
+                  <span className="font-serif font-bold text-cocoa-800">Total Pembayaran:</span>
                   <span className="font-serif text-lg font-bold text-cocoa-900">
                     {formatMoney(totalAmount)}
                   </span>
@@ -546,23 +731,23 @@ export default function CheckoutDrawer({ settings }: CheckoutDrawerProps) {
                   {loading ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>{t.checkout.processing}</span>
+                      <span>Memproses Pesanan...</span>
                     </>
-                  ) : paymentMethodId === 'gateway_stripe' ? (
+                  ) : paymentMethodId === 'gateway_qris' ? (
                     <>
-                      <CreditCard className="w-5 h-5 text-caramel-400" />
-                      <span>{t.checkout.submitOrder} ({formatMoney(totalAmount)})</span>
+                      <QrCode className="w-5 h-5 text-caramel-400" />
+                      <span>Lanjut Pembayaran QRIS ({formatMoney(totalAmount)})</span>
                     </>
                   ) : (
                     <>
                       <CheckCircle2 className="w-5 h-5 text-caramel-400" />
-                      <span>{t.checkout.submitManual}</span>
+                      <span>Konfirmasi & Buat Pesanan</span>
                     </>
                   )}
                 </button>
                 <div className="flex items-center justify-center gap-1.5 text-[11px] text-espresso-900/60 mt-2.5">
                   <Lock className="w-3.5 h-3.5 text-sage-600" />
-                  <span>{t.checkout.guaranteeNotice}</span>
+                  <span>Transaksi Terlindungi & Terverifikasi Langsung di Sistem Toko</span>
                 </div>
               </div>
             </form>
@@ -570,7 +755,7 @@ export default function CheckoutDrawer({ settings }: CheckoutDrawerProps) {
         </div>
       </div>
 
-      {/* Stripe Payment Gateway Interactive Modal */}
+      {/* QRIS & Payment Gateway Modal */}
       <PaymentGatewayModal
         isOpen={isGatewayOpen}
         onClose={() => setIsGatewayOpen(false)}
