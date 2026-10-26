@@ -717,6 +717,20 @@ export async function createOrder(
     }
 
     const qty = Math.max(1, Math.floor(item.quantity));
+
+    // ORD-01: Enforce minimum order quantity from badge (e.g. "Min. 5 Box") or catering category
+    const minQtyMatch = prod.badge?.match(/min\.?\s*(\d+)/i);
+    const minRequiredQty = minQtyMatch
+      ? parseInt(minQtyMatch[1], 10)
+      : (prod.category_id === 'cat_catering' ? 5 : 1);
+
+    if (qty < minRequiredQty) {
+      return {
+        success: false,
+        error: `Jumlah pemesanan untuk "${prod.name}" minimal ${minRequiredQty} box/porsi.`,
+      };
+    }
+
     const unitPrice = variant.price;
     const itemTotal = unitPrice * qty;
     subtotal += itemTotal;

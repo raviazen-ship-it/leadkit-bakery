@@ -20,6 +20,7 @@ import {
   Sparkles,
   ChevronRight,
   FileText,
+  Lock,
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -139,14 +140,60 @@ export default function CustomerAccountPage() {
     }
   };
 
+  // Quick guest login state if not logged in
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
+
+  const handleInlineLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    setLoginLoading(true);
+
+    try {
+      const res = await fetch('/api/customer/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setLoginError(data.error || 'Email atau kata sandi tidak cocok.');
+        return;
+      }
+
+      setCustomer(data.customer);
+      setName(data.customer.name);
+      setPhone(data.customer.phone);
+      setAddress(data.customer.address || '');
+
+      // Load orders
+      const ordersRes = await fetch('/api/customer/orders');
+      const ordersData = await ordersRes.json();
+      if (ordersData.success) {
+        setOrders(ordersData.orders || []);
+      }
+    } catch (err: any) {
+      setLoginError(err.message || 'Gagal login.');
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col bg-cream-100">
         <Navbar />
-        <main className="flex-1 flex items-center justify-center py-20">
-          <div className="text-center space-y-3">
-            <div className="w-10 h-10 border-4 border-caramel-500 border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="text-sm font-medium text-cocoa-800">Memuat Akun Pelanggan...</p>
+        <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
+          <div className="space-y-6 animate-pulse">
+            <div className="h-28 bg-oat-200/80 rounded-3xl" />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="h-32 bg-oat-200/60 rounded-2xl" />
+              <div className="h-32 bg-oat-200/60 rounded-2xl" />
+              <div className="h-32 bg-oat-200/60 rounded-2xl" />
+            </div>
           </div>
         </main>
         <Footer />
@@ -154,7 +201,112 @@ export default function CustomerAccountPage() {
     );
   }
 
-  if (!customer) return null;
+  // If not logged in, render the clean Guest / Login Portal (AUTH-01)
+  if (!customer) {
+    return (
+      <div className="min-h-screen flex flex-col bg-cream-100">
+        <Navbar />
+
+        <main className="flex-1 max-w-lg mx-auto px-4 sm:px-6 py-12 w-full space-y-6">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-oat-300 shadow-md space-y-6">
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 rounded-full bg-cocoa-800 text-cream-100 mx-auto flex items-center justify-center shadow-sm">
+                <User className="w-6 h-6 text-caramel-400" />
+              </div>
+              <h1 className="font-serif text-2xl sm:text-3xl font-bold text-cocoa-900">
+                Akun Pelanggan Aura Bakery
+              </h1>
+              <p className="text-xs sm:text-sm text-espresso-900/70 font-light leading-relaxed">
+                Masuk untuk melihat riwayat pesanan Anda, melacak status antrean dapur, dan menyimpan alamat pengiriman.
+              </p>
+            </div>
+
+            {loginError && (
+              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                <span>{loginError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleInlineLogin} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-espresso-900 mb-1">
+                  Alamat Email *
+                </label>
+                <div className="relative">
+                  <input
+                    type="email"
+                    required
+                    placeholder="nama@email.com"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-oat-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-caramel-500"
+                  />
+                  <Mail className="w-4 h-4 text-espresso-900/40 absolute left-3.5 top-3" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-espresso-900 mb-1">
+                  Kata Sandi *
+                </label>
+                <div className="relative">
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-oat-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-caramel-500"
+                  />
+                  <Lock className="w-4 h-4 text-espresso-900/40 absolute left-3.5 top-3" />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loginLoading}
+                className="w-full py-3 rounded-xl bg-cocoa-800 hover:bg-cocoa-900 text-cream-100 font-bold text-xs transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {loginLoading ? (
+                  <span>Memverifikasi Akun...</span>
+                ) : (
+                  <span>Masuk ke Akun Pelanggan</span>
+                )}
+              </button>
+            </form>
+
+            <div className="pt-4 border-t border-oat-200 text-center space-y-3">
+              <p className="text-xs text-espresso-900/70">
+                Belum memiliki akun?{' '}
+                <Link href="/register" className="font-bold text-caramel-700 hover:underline">
+                  Daftar akun baru di sini
+                </Link>
+              </p>
+
+              <div className="p-3.5 rounded-2xl bg-cream-50 border border-oat-200 text-left space-y-1">
+                <span className="text-[11px] font-bold text-cocoa-900 block flex items-center gap-1.5">
+                  <ShoppingBag className="w-3.5 h-3.5 text-caramel-600" />
+                  <span>Pesan sebagai Tamu?</span>
+                </span>
+                <p className="text-[11px] text-espresso-900/70 leading-relaxed">
+                  Anda tidak wajib login untuk memesan atau melacak status pesanan Anda.
+                </p>
+                <Link
+                  href="/pesanan"
+                  className="inline-block text-[11px] font-bold text-caramel-700 hover:underline pt-0.5"
+                >
+                  Buka Pelacakan Pesanan Mandiri &rarr;
+                </Link>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-cream-100">

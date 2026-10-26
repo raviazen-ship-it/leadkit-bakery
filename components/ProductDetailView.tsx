@@ -50,8 +50,15 @@ export default function ProductDetailView({
       display_order: 1,
     };
 
+  const minQuantity = (() => {
+    const match = product.badge?.match(/min\.?\s*(\d+)/i);
+    if (match) return parseInt(match[1], 10);
+    if (product.category_id === 'cat_catering' || product.category?.slug === 'catering-event-boxes') return 5;
+    return 1;
+  })();
+
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant>(defaultVariant);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(minQuantity);
   const [customNote, setCustomNote] = useState('');
   const [activeImage, setActiveImage] = useState(product.main_image);
   const [addedSuccess, setAddedSuccess] = useState(false);
@@ -155,17 +162,25 @@ export default function ProductDetailView({
                 </div>
               )}
 
-              {/* Artisan Quality Highlights */}
+              {/* Artisan Quality Highlights (PROD-01: Category-specific) */}
               <div className="bg-white p-5 rounded-2xl border border-oat-200 space-y-3 text-xs text-cocoa-800 shadow-2xs">
                 <div className="flex items-center gap-2 font-bold text-cocoa-900">
                   <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>Jaminan Kualitas Artisan Aura Bakery</span>
+                  <span>Jaminan Kualitas Aura Bakery &amp; Catering</span>
                 </div>
-                <ul className="space-y-1.5 text-espresso-900/80 leading-relaxed list-disc list-inside">
-                  <li>Dibuat secara segar (made-to-order) menggunakan butter Prancis &amp; bahan premium alami.</li>
-                  <li>Tanpa bahan pengawet sintetik, pewarna buatan, atau pemanis buatan.</li>
-                  <li>Dikemas aman khusus hantaran dengan packaging food-grade ramah lingkungan.</li>
-                </ul>
+                {product.category_id === 'cat_catering' || product.category?.slug === 'catering-event-boxes' ? (
+                  <ul className="space-y-1.5 text-espresso-900/80 leading-relaxed list-disc list-inside">
+                    <li>Dimasak segar (made-to-order) dengan beras pulen, rempah Nusantara &amp; santan murni.</li>
+                    <li>Bahan higienis tanpa pengawet sintetik, pewarna buatan, atau MSG berlebih.</li>
+                    <li>Dikemas dalam kotak ramah lingkungan lengkap dengan alat makan kayu sekali pakai.</li>
+                  </ul>
+                ) : (
+                  <ul className="space-y-1.5 text-espresso-900/80 leading-relaxed list-disc list-inside">
+                    <li>Dibuat secara segar (made-to-order) menggunakan butter kualitas prima &amp; bahan premium alami.</li>
+                    <li>Tanpa bahan pengawet sintetik, pewarna buatan, atau pemanis buatan.</li>
+                    <li>Dikemas aman khusus hantaran dengan packaging food-grade ramah lingkungan.</li>
+                  </ul>
+                )}
               </div>
             </div>
 
@@ -255,14 +270,16 @@ export default function ProductDetailView({
                 </div>
               )}
 
-              {/* Quantity & CTA Buttons */}
+              {/* Quantity & CTA Buttons (ORD-01: minQuantity enforcement) */}
               <div className="space-y-3 pt-2">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center border border-oat-300 bg-white rounded-full p-1 shadow-2xs">
                     <button
                       type="button"
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="w-8 h-8 rounded-full hover:bg-oat-100 flex items-center justify-center text-sm font-bold text-cocoa-800"
+                      disabled={quantity <= minQuantity}
+                      onClick={() => setQuantity(Math.max(minQuantity, quantity - 1))}
+                      className="w-8 h-8 rounded-full hover:bg-oat-100 flex items-center justify-center text-sm font-bold text-cocoa-800 disabled:opacity-30 disabled:cursor-not-allowed"
+                      aria-label="Kurangi jumlah"
                     >
                       -
                     </button>
@@ -273,14 +290,22 @@ export default function ProductDetailView({
                       type="button"
                       onClick={() => setQuantity(quantity + 1)}
                       className="w-8 h-8 rounded-full hover:bg-oat-100 flex items-center justify-center text-sm font-bold text-cocoa-800"
+                      aria-label="Tambah jumlah"
                     >
                       +
                     </button>
                   </div>
 
-                  <span className="text-xs text-espresso-900/60">
-                    Total: <strong className="text-cocoa-900">{formatMoney(selectedVariant.price * quantity)}</strong>
-                  </span>
+                  <div className="text-xs">
+                    <span className="text-espresso-900/60 block">
+                      Total: <strong className="text-cocoa-900">{formatMoney(selectedVariant.price * quantity)}</strong>
+                    </span>
+                    {minQuantity > 1 && (
+                      <span className="text-[10px] text-caramel-700 font-semibold block">
+                        * Minimum pemesanan {minQuantity} box/porsi
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
@@ -334,7 +359,7 @@ export default function ProductDetailView({
                     <span>Pilihan Pengiriman &amp; Ambil Sendiri:</span>
                   </span>
                   <p className="text-espresso-900/80 leading-relaxed">
-                    Pengambilan langsung di toko Senopati (Selasa-Minggu 08.00-20.00 WIB) atau kurir instan berpendingin area Jabodetabek.
+                    Pengambilan langsung di toko Senopati (Selasa-Minggu 08.00-20.00 WIB) atau kurir khusus area {settings?.delivery_areas || 'Jakarta Selatan, Jakarta Pusat, dan sebagian Tangerang Selatan (radius 15 km dari toko Senopati)'}.
                   </p>
                 </div>
               </div>

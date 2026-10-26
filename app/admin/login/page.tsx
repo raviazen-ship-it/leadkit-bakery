@@ -3,10 +3,11 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Store, Lock, Eye, EyeOff, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
+import { Store, Lock, Eye, EyeOff, ArrowLeft, Loader2, AlertCircle, User } from 'lucide-react';
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -15,6 +16,11 @@ export default function AdminLoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+
+    if (!username.trim()) {
+      setErrorMsg('Silakan masukkan username admin.');
+      return;
+    }
 
     if (!password) {
       setErrorMsg('Silakan masukkan password admin.');
@@ -27,13 +33,13 @@ export default function AdminLoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ username: username.trim(), password }),
       });
 
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Password salah. Silakan coba lagi.');
+        throw new Error(data.error || 'Username atau password salah. Silakan coba lagi.');
       }
 
       // Success -> navigate to /admin
@@ -55,10 +61,10 @@ export default function AdminLoginPage() {
             <Store className="w-6 h-6 text-caramel-400" />
           </div>
           <h1 className="font-serif text-2xl font-bold text-cocoa-800">
-            Login Admin Aura Bakery
+            Login Portal Admin Aura Bakery
           </h1>
           <p className="text-xs text-espresso-900/70 font-light">
-            Masuk untuk mengelola pesanan pelanggan, produk, promosi musiman, dan konfigurasi toko.
+            Masuk dengan akun staf untuk mengelola pesanan, katalog produk, dan antrean dapur.
           </p>
         </div>
 
@@ -74,7 +80,24 @@ export default function AdminLoginPage() {
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-espresso-900 mb-1.5">
-              Password Akses Admin
+              Username Staf / Admin
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                required
+                placeholder="Contoh: admin atau owner"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-oat-300 bg-cream-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-caramel-500 font-mono"
+              />
+              <User className="w-4 h-4 text-espresso-900/40 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-espresso-900 mb-1.5">
+              Password Akses
             </label>
             <div className="relative">
               <input
@@ -83,7 +106,7 @@ export default function AdminLoginPage() {
                 placeholder="Masukkan password admin..."
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-10 py-3 rounded-xl border border-oat-300 bg-cream-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-caramel-500"
+                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-oat-300 bg-cream-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-caramel-500"
               />
               <Lock className="w-4 h-4 text-espresso-900/40 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <button
@@ -100,12 +123,12 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 px-6 rounded-xl bg-cocoa-800 hover:bg-cocoa-900 text-cream-100 text-sm font-semibold transition-all shadow-md flex items-center justify-center gap-2 focus:ring-2 focus:ring-cocoa-700 disabled:opacity-70"
+            className="w-full py-3.5 px-6 rounded-xl bg-cocoa-800 hover:bg-cocoa-900 text-cream-100 text-sm font-semibold transition-all shadow-md flex items-center justify-center gap-2 focus:ring-2 focus:ring-cocoa-700 disabled:opacity-70 mt-2"
           >
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Memverifikasi...</span>
+                <span>Memverifikasi Otorisasi...</span>
               </>
             ) : (
               <span>Masuk ke Dashboard</span>
@@ -113,11 +136,11 @@ export default function AdminLoginPage() {
           </button>
         </form>
 
-        {/* Back Link */}
-        <div className="text-center pt-2">
+        {/* Footer Navigation */}
+        <div className="pt-2 text-center border-t border-oat-100">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-xs text-espresso-900/70 hover:text-caramel-700 font-medium transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs text-cocoa-800/70 hover:text-cocoa-900 font-medium transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Kembali ke Website Toko</span>

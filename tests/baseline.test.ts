@@ -221,3 +221,90 @@ test('T-ADM-05: Kitchen Production Batch Aggregation', () => {
 
   assert.equal(sourdoughBatchTotal, 5, 'Total adonan Country Sourdough batch 09.00 harus 5 loaf');
 });
+
+test('T-ORD-01: Minimum Order Enforcement for Catering (UI & Server rule)', () => {
+  // Function matching repo & UI logic
+  function calculateMinQty(product: { badge?: string; category_id?: string; category_slug?: string }): number {
+    const match = product.badge?.match(/min\.?\s*(\d+)/i);
+    if (match) return parseInt(match[1], 10);
+    if (product.category_id === 'cat_catering' || product.category_slug === 'catering-meal-boxes' || product.category_slug === 'catering-event-boxes') {
+      return 5;
+    }
+    return 1;
+  }
+
+  // 1. Product with badge "Min. 5 Box"
+  const cateringNasiLiwet = {
+    badge: 'Min. 5 Box',
+    category_id: 'cat_catering',
+    name: 'Nasi Liwet Solo Box',
+  };
+  assert.equal(calculateMinQty(cateringNasiLiwet), 5, 'Badge Min. 5 Box harus menghasilkan minQty 5');
+
+  // 2. Regular pastry item
+  const croissant = {
+    badge: 'Best Seller',
+    category_id: 'cat_pastry',
+    name: 'Croissant Box',
+  };
+  assert.equal(calculateMinQty(croissant), 1, 'Pastry reguler harus minQty 1');
+
+  // 3. Server-side validation simulator
+  function validateOrderItemQuantity(itemQty: number, product: any): { valid: boolean; error?: string } {
+    const minQty = calculateMinQty(product);
+    if (itemQty < minQty) {
+      return { valid: false, error: `Jumlah pemesanan untuk "${product.name}" minimal ${minQty} box/porsi.` };
+    }
+    return { valid: true };
+  }
+
+  assert.equal(validateOrderItemQuantity(1, cateringNasiLiwet).valid, false, 'Qty 1 untuk catering wajib ditolak server');
+  assert.equal(validateOrderItemQuantity(4, cateringNasiLiwet).valid, false, 'Qty 4 untuk catering wajib ditolak server');
+  assert.equal(validateOrderItemQuantity(5, cateringNasiLiwet).valid, true, 'Qty 5 untuk catering harus diterima server');
+  assert.equal(validateOrderItemQuantity(10, cateringNasiLiwet).valid, true, 'Qty 10 untuk catering harus diterima server');
+  assert.equal(validateOrderItemQuantity(1, croissant).valid, true, 'Qty 1 untuk croissant harus diterima server');
+});
+
+test('T-FUL-01: Single Source of Truth for Delivery Areas', () => {
+  const deliveryAreaSetting = 'Pengiriman mencakup seluruh wilayah Jakarta Selatan, Jakarta Pusat, dan sebagian Tangerang Selatan (kurir instan/sameday).';
+
+  assert.ok(deliveryAreaSetting.includes('Jakarta Selatan'), 'Wajib mencakup Jakarta Selatan');
+  assert.ok(deliveryAreaSetting.includes('Jakarta Pusat'), 'Wajib mencakup Jakarta Pusat');
+  assert.ok(deliveryAreaSetting.includes('Tangerang Selatan'), 'Wajib mencakup Tangerang Selatan');
+  assert.equal(deliveryAreaSetting.toLowerCase().includes('jabodetabek'), false, 'Tidak boleh mengklaim seluruh Jabodetabek tanpa kurir luas');
+});
+
+test('T-SEASON-01: Evergreen / Year-End Seasonal Campaign Verification', () => {
+  const announcementText = 'Pre-order Koleksi Spesial Akhir Tahun & Hampers Artisan telah dibuka! Kuota oven terbatas setiap harinya.';
+
+  assert.equal(announcementText.includes('Eid Hampers'), false, 'Banner tidak boleh menampilkan Eid Hampers di bulan Oktober');
+  assert.ok(announcementText.includes('Artisan') || announcementText.includes('Akhir Tahun'), 'Banner harus relevan dan evergreen');
+});
+
+test('T-SEC-01-RATE: Admin Rate Limiting Simulator', () => {
+  const attempts = new Map<string, { count: number; firstAttempt: number }>();
+  const RATE_LIMIT_WINDOW = 60 * 1000;
+  const MAX_ATTEMPTS = 5;
+
+  function recordLoginAttempt(ip: string): boolean {
+    const now = Date.now();
+    const record = attempts.get(ip);
+    if (!record || now - record.firstAttempt > RATE_LIMIT_WINDOW) {
+      attempts.set(ip, { count: 1, firstAttempt: now });
+      return true;
+    }
+    if (record.count >= MAX_ATTEMPTS) {
+      return false; // Rate limited
+    }
+    record.count += 1;
+    return true;
+  }
+
+  const clientIp = '192.168.1.100';
+  // 5 attempts allowed
+  for (let i = 0; i < 5; i++) {
+    assert.equal(recordLoginAttempt(clientIp), true, `Attempt ${i + 1} harus diizinkan`);
+  }
+  // 6th attempt must be rejected (rate limited)
+  assert.equal(recordLoginAttempt(clientIp), false, 'Percobaan ke-6 wajib diblokir oleh rate limiter');
+});

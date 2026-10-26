@@ -311,14 +311,15 @@ export default function ContactPageClient({
                 <details
                   key={faq.id}
                   open={isOpen}
-                  className="bg-white rounded-2xl border border-oat-200 overflow-hidden shadow-sm transition-all"
+                  onToggle={(e) => {
+                    const isOpenNow = (e.currentTarget as HTMLDetailsElement).open;
+                    setActiveFaqId(isOpenNow ? faq.id : null);
+                  }}
+                  className="bg-white rounded-2xl border border-oat-200 overflow-hidden shadow-sm transition-all group"
                 >
                   <summary
-                    onClick={(e) => {
-                      e.preventDefault();
-                      toggleFaq(faq.id);
-                    }}
-                    className="w-full p-5 text-left flex items-center justify-between gap-4 hover:bg-cream-50 transition-colors cursor-pointer list-none select-none"
+                    className="w-full p-5 text-left flex items-center justify-between gap-4 hover:bg-cream-50 transition-colors cursor-pointer list-none select-none focus:outline-none focus:ring-2 focus:ring-caramel-400 focus:ring-inset"
+                    aria-expanded={isOpen}
                   >
                     <span className="font-serif text-base font-bold text-cocoa-800">
                       {faq.question}

@@ -59,10 +59,10 @@ export function signPayload(payloadString: string): string {
 /**
  * Create a signed admin session token (valid for 7 days)
  */
-export function createSessionToken(): string {
+export function createSessionToken(username: string = 'admin'): string {
   const session: AdminSession = {
     role: 'admin',
-    username: 'admin',
+    username,
     expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
   };
 

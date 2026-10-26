@@ -82,7 +82,15 @@ export default function CartDrawer({ settings }: CartDrawerProps) {
                 </Link>
               </div>
             ) : (
-              items.map((item) => (
+              items.map((item) => {
+                const itemMinQty = (() => {
+                  const match = item.product.badge?.match(/min\.?\s*(\d+)/i);
+                  if (match) return parseInt(match[1], 10);
+                  if (item.product.category_id === 'cat_catering' || item.product.category?.slug === 'catering-event-boxes' || item.product.category?.slug === 'catering-meal-boxes') return 5;
+                  return 1;
+                })();
+
+                return (
                 <div
                   key={`${item.product.id}-${item.selectedVariant.id}`}
                   className="flex gap-4 p-3.5 rounded-2xl bg-white border border-oat-200 shadow-sm"
@@ -123,22 +131,29 @@ export default function CartDrawer({ settings }: CartDrawerProps) {
                     </div>
 
                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-oat-100">
-                      <span className="text-sm font-semibold text-cocoa-800">
-                        {formatMoney(item.selectedVariant.price * item.quantity)}
-                      </span>
+                      <div>
+                        <span className="text-sm font-semibold text-cocoa-800">
+                          {formatMoney(item.selectedVariant.price * item.quantity)}
+                        </span>
+                        {itemMinQty > 1 && (
+                          <span className="block text-[10px] text-caramel-600 font-medium">Min. {itemMinQty} box</span>
+                        )}
+                      </div>
 
                       {/* Quantity Controls */}
                       <div className="flex items-center border border-oat-200 rounded-lg bg-cream-50">
                         <button
+                          type="button"
+                          disabled={item.quantity <= itemMinQty}
                           onClick={() =>
                             updateQuantity(
                               item.product.id,
                               item.selectedVariant.id,
-                              item.quantity - 1
+                              Math.max(itemMinQty, item.quantity - 1)
                             )
                           }
                           aria-label="Decrease quantity"
-                          className="p-1 hover:bg-oat-200 rounded-l text-cocoa-800"
+                          className="p-1 hover:bg-oat-200 rounded-l text-cocoa-800 disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                           <Minus className="w-3.5 h-3.5" />
                         </button>
@@ -146,6 +161,7 @@ export default function CartDrawer({ settings }: CartDrawerProps) {
                           {item.quantity}
                         </span>
                         <button
+                          type="button"
                           onClick={() =>
                             updateQuantity(
                               item.product.id,
@@ -162,7 +178,8 @@ export default function CartDrawer({ settings }: CartDrawerProps) {
                     </div>
                   </div>
                 </div>
-              ))
+              );
+              })
             )}
           </div>
 

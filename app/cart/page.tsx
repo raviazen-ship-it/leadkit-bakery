@@ -83,7 +83,7 @@ export default function CartPage() {
                     <Truck className="w-4 h-4 text-caramel-600" />
                     <span>
                       {isFreeDelivery
-                        ? 'Selamat! Pesanan Anda memenuhi syarat Gratis Ongkir (Jabodetabek).'
+                        ? 'Selamat! Pesanan Anda memenuhi syarat Gratis Ongkir (Area Pengiriman Aura).'
                         : `Tambah ${formatMoney(freeDeliveryThreshold - subtotal)} lagi untuk Gratis Ongkir!`}
                     </span>
                   </span>
@@ -99,70 +99,87 @@ export default function CartPage() {
 
               {/* Items Table */}
               <div className="bg-white rounded-3xl border border-oat-200 shadow-sm divide-y divide-oat-100 overflow-hidden">
-                {items.map((item, idx) => (
-                  <div key={`${item.product.id}_${item.selectedVariant.id}_${idx}`} className="p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-20 h-20 rounded-2xl bg-oat-100 overflow-hidden shrink-0 border border-oat-200">
-                        {item.product.main_image && (
-                          <img
-                            src={item.product.main_image}
-                            alt={item.product.name}
-                            className="w-full h-full object-cover"
-                          />
-                        )}
-                      </div>
-                      <div className="space-y-1">
-                        <Link
-                          href={`/produk/${item.product.slug}`}
-                          className="font-serif text-base font-bold text-cocoa-900 hover:text-caramel-600 transition-colors"
-                        >
-                          {item.product.name}
-                        </Link>
-                        <span className="text-xs text-caramel-700 block font-medium">
-                          Varian: {item.selectedVariant.name}
-                        </span>
-                        <span className="text-xs text-espresso-900/60 block font-mono">
-                          {formatMoney(item.selectedVariant.price)}
-                        </span>
-                      </div>
-                    </div>
+                {items.map((item, idx) => {
+                  const itemMinQty = (() => {
+                    const match = item.product.badge?.match(/min\.?\s*(\d+)/i);
+                    if (match) return parseInt(match[1], 10);
+                    if (item.product.category_id === 'cat_catering' || item.product.category?.slug === 'catering-event-boxes' || item.product.category?.slug === 'catering-meal-boxes') return 5;
+                    return 1;
+                  })();
 
-                    <div className="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto">
-                      <div className="flex items-center border border-oat-300 rounded-full p-1 bg-cream-50">
+                  return (
+                    <div key={`${item.product.id}_${item.selectedVariant.id}_${idx}`} className="p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-20 h-20 rounded-2xl bg-oat-100 overflow-hidden shrink-0 border border-oat-200">
+                          {item.product.main_image && (
+                            <img
+                              src={item.product.main_image}
+                              alt={item.product.name}
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          <Link
+                            href={`/produk/${item.product.slug}`}
+                            className="font-serif text-base font-bold text-cocoa-900 hover:text-caramel-600 transition-colors"
+                          >
+                            {item.product.name}
+                          </Link>
+                          <span className="text-xs text-caramel-700 block font-medium">
+                            Varian: {item.selectedVariant.name}
+                          </span>
+                          {itemMinQty > 1 && (
+                            <span className="text-[11px] text-caramel-600 block font-medium">
+                              Min. order: {itemMinQty} box/porsi
+                            </span>
+                          )}
+                          <span className="text-xs text-espresso-900/60 block font-mono">
+                            {formatMoney(item.selectedVariant.price)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto">
+                        <div className="flex items-center border border-oat-300 rounded-full p-1 bg-cream-50">
+                          <button
+                            type="button"
+                            disabled={item.quantity <= itemMinQty}
+                            onClick={() => updateQuantity(item.product.id, item.selectedVariant.id, Math.max(itemMinQty, item.quantity - 1))}
+                            className="w-7 h-7 rounded-full hover:bg-white flex items-center justify-center text-xs font-bold text-cocoa-800 disabled:opacity-30 disabled:cursor-not-allowed"
+                            aria-label="Kurangi jumlah"
+                          >
+                            -
+                          </button>
+                          <span className="w-8 text-center text-xs font-bold text-cocoa-900">
+                            {item.quantity}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(item.product.id, item.selectedVariant.id, item.quantity + 1)}
+                            className="w-7 h-7 rounded-full hover:bg-white flex items-center justify-center text-xs font-bold text-cocoa-800"
+                            aria-label="Tambah jumlah"
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <span className="font-serif text-sm font-bold text-cocoa-900 min-w-24 text-right">
+                          {formatMoney(item.selectedVariant.price * item.quantity)}
+                        </span>
+
                         <button
                           type="button"
-                          onClick={() => updateQuantity(item.product.id, item.selectedVariant.id, item.quantity - 1)}
-                          className="w-7 h-7 rounded-full hover:bg-white flex items-center justify-center text-xs font-bold text-cocoa-800"
+                          onClick={() => removeItem(item.product.id, item.selectedVariant.id)}
+                          className="p-2 text-espresso-900/40 hover:text-red-600 transition-colors"
+                          title="Hapus dari keranjang"
                         >
-                          -
-                        </button>
-                        <span className="w-8 text-center text-xs font-bold text-cocoa-900">
-                          {item.quantity}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => updateQuantity(item.product.id, item.selectedVariant.id, item.quantity + 1)}
-                          className="w-7 h-7 rounded-full hover:bg-white flex items-center justify-center text-xs font-bold text-cocoa-800"
-                        >
-                          +
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-
-                      <span className="font-serif text-sm font-bold text-cocoa-900 min-w-24 text-right">
-                        {formatMoney(item.selectedVariant.price * item.quantity)}
-                      </span>
-
-                      <button
-                        type="button"
-                        onClick={() => removeItem(item.product.id, item.selectedVariant.id)}
-                        className="p-2 text-espresso-900/40 hover:text-red-600 transition-colors"
-                        title="Hapus dari keranjang"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 

@@ -42,7 +42,15 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
   const { addItem } = useCart();
   const { t, formatMoney } = useLanguage();
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
-  const [quantity, setQuantity] = useState(1);
+
+  const minQuantity = (() => {
+    const match = product?.badge?.match(/min\.?\s*(\d+)/i);
+    if (match) return parseInt(match[1], 10);
+    if (product?.category_id === 'cat_catering' || product?.category?.slug === 'catering-event-boxes') return 5;
+    return 1;
+  })();
+
+  const [quantity, setQuantity] = useState(minQuantity);
   const [activeImage, setActiveImage] = useState<string>('');
   const [isAdded, setIsAdded] = useState(false);
 
@@ -62,7 +70,7 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
         null;
 
       setSelectedVariant(defaultVar);
-      setQuantity(1);
+      setQuantity(minQuantity);
       setActiveImage(product.main_image);
       setIsAdded(false);
       setSelectedAddons({});
@@ -73,7 +81,7 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
       tomorrow.setDate(tomorrow.getDate() + Math.max(1, product.min_preorder_days || 1));
       setCheckDate(tomorrow.toISOString().split('T')[0]);
     }
-  }, [product]);
+  }, [product, minQuantity]);
 
   if (!product) return null;
 
@@ -350,13 +358,19 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
             {/* Quantity Selector & Add Button */}
             <div className="pt-3 border-t border-oat-200 space-y-2.5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-espresso-900">{t.productModal.quantity}</span>
+                <div>
+                  <span className="text-xs font-semibold text-espresso-900">{t.productModal.quantity}</span>
+                  {minQuantity > 1 && (
+                    <span className="block text-[10px] text-caramel-600 font-medium">Min. {minQuantity} box/porsi</span>
+                  )}
+                </div>
                 <div className="flex items-center border border-oat-300 rounded-xl bg-white shadow-sm">
                   <button
                     type="button"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    disabled={quantity <= minQuantity}
+                    onClick={() => setQuantity(Math.max(minQuantity, quantity - 1))}
                     aria-label="Kurangi jumlah"
-                    className="p-2 text-cocoa-800 hover:bg-oat-100 rounded-l-xl transition-colors"
+                    className="p-2 text-cocoa-800 hover:bg-oat-100 rounded-l-xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     <Minus className="w-4 h-4" />
                   </button>

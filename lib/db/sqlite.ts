@@ -261,7 +261,7 @@ function seedInitialData(db: DatabaseSync) {
       { id: 'pickup_cash', name: 'Bayar saat Pengambilan (Cash/QRIS di Counter)', account_number: '', account_name: '', enabled: true }
     ]),
     1,
-    'Pre-order Festive Season & Eid Hampers telah dibuka! Kuota terbatas setiap harinya.',
+    'Pre-order Koleksi Spesial Akhir Tahun & Hampers Artisan telah dibuka! Kuota oven terbatas setiap harinya.',
     'Freshly Made, Thoughtfully Baked',
     'Cita Rasa Artisan untuk Setiap Momen Spesial',
     'Temukan kue perayaan artisan, roti sourdough segar harian, dan paket catering pilihan yang dibuat dengan ketulusan dan bahan terbaik.',
