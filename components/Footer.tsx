@@ -103,6 +103,22 @@ export default function Footer({ settings }: FooterProps) {
                   {t.nav.contact}
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/pesanan"
+                  className="text-cream-100/80 hover:text-caramel-400 transition-colors"
+                >
+                  {language === 'en' ? 'Track Order' : 'Lacak Status Pesanan'}
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/akun"
+                  className="text-cream-100/80 hover:text-caramel-400 transition-colors"
+                >
+                  {language === 'en' ? 'Customer Account' : 'Akun Pelanggan'}
+                </Link>
+              </li>
             </ul>
           </div>
 

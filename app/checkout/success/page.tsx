@@ -66,11 +66,19 @@ export default async function CheckoutSuccessPage({ searchParams }: CheckoutSucc
           )}
 
           <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
+            {order && (
+              <Link
+                href={`/pesanan/${order.public_token || order.order_number}`}
+                className="px-6 py-3 rounded-full bg-caramel-600 hover:bg-caramel-700 text-white font-bold text-xs transition-colors shadow-sm"
+              >
+                Lacak Status Pesanan Digital
+              </Link>
+            )}
             <Link
               href="/akun"
               className="px-6 py-3 rounded-full bg-cocoa-800 hover:bg-cocoa-900 text-cream-100 font-bold text-xs transition-colors shadow-sm"
             >
-              Buka Akun &amp; Lacak Pesanan
+              Buka Akun Pelanggan
             </Link>
             <Link
               href="/produk"

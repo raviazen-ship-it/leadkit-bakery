@@ -56,15 +56,16 @@ export default function OrderConfirmationModal({
 
   // Is this an online payment gateway order?
   const isGatewayOrder =
-    activeOrder.payment_method_id === 'gateway_stripe' ||
+    activeOrder.payment_method_id === 'gateway_qris' ||
     activeOrder.payment_method_id?.startsWith('gateway_') ||
     activeOrder.payment_status === 'Dibayar' ||
-    (activeOrder as any).transaction_id;
+    Boolean((activeOrder as any).transaction_id);
 
   const transactionRef =
     (activeOrder as any).transaction_id ||
+    (activeOrder.customer_notes?.match(/QRIS_[A-Z0-9_]+/)?.[0]) ||
     (activeOrder.customer_notes?.match(/TXN_[A-Z0-9_]+/)?.[0]) ||
-    'TXN_STRIPE_98A41E';
+    `QRIS_${activeOrder.order_number.replace(/\D/g, '') || 'SETTLED'}`;
 
   // Generate WhatsApp prefilled message
   const waEncodedMsg = createWhatsAppOrderMessage({
@@ -79,7 +80,7 @@ export default function OrderConfirmationModal({
     delivery_fee: activeOrder.delivery_fee,
     total_amount: activeOrder.total_amount,
     payment_method_name: isGatewayOrder
-      ? 'Online Payment Gateway (Paid & Verified)'
+      ? 'QRIS Instan (Terverifikasi Otomatis)'
       : activeOrder.payment_method_name,
     items: activeOrder.items?.map((it) => ({
       product_name: it.product_name,
@@ -196,11 +197,11 @@ export default function OrderConfirmationModal({
             <div className="flex items-center justify-between">
               <span className="font-serif text-xs font-bold text-cocoa-800 flex items-center gap-1.5">
                 <ChefHat className="w-4 h-4 text-caramel-600" />
-                <span>{t.confirmation.trackOrderTitle}</span>
+                <span>Status Pemrosesan Dapur</span>
               </span>
               <span className="inline-flex items-center gap-1 text-[10px] text-sage-700 font-bold">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                <span>Live Kitchen Queue</span>
+                <span>Antrean Terjadwal</span>
               </span>
             </div>
 
@@ -210,9 +211,9 @@ export default function OrderConfirmationModal({
                   <Check className="w-3.5 h-3.5 stroke-[3]" />
                 </div>
                 <div className="flex-1">
-                  <span className="font-bold text-cocoa-900 block">{t.confirmation.stepPaid}</span>
+                  <span className="font-bold text-cocoa-900 block">Pesanan Terverifikasi</span>
                   <span className="text-[10px] text-espresso-900/60 block font-mono">
-                    Authorized via Secure Gateway
+                    {isGatewayOrder ? 'Pembayaran QRIS Terkonfirmasi' : 'Tercatat di Antrean Dapur Aura'}
                   </span>
                 </div>
               </div>
@@ -222,9 +223,9 @@ export default function OrderConfirmationModal({
                   <Flame className="w-3.5 h-3.5" />
                 </div>
                 <div className="flex-1">
-                  <span className="font-bold text-cocoa-900 block">{t.confirmation.stepKitchen}</span>
+                  <span className="font-bold text-cocoa-900 block">Persiapan Adonan Artisan</span>
                   <span className="text-[10px] text-espresso-900/60 block">
-                    Normandy butter &amp; sourdough starter resting
+                    Butter kualitas prima &amp; sourdough starter difermentasi alami
                   </span>
                 </div>
               </div>
@@ -234,7 +235,7 @@ export default function OrderConfirmationModal({
                   <Clock className="w-3.5 h-3.5" />
                 </div>
                 <div className="flex-1">
-                  <span className="font-medium text-cocoa-800 block">{t.confirmation.stepOven}</span>
+                  <span className="font-medium text-cocoa-800 block">Pemanggangan Deck Oven</span>
                 </div>
               </div>
 
@@ -243,7 +244,7 @@ export default function OrderConfirmationModal({
                   <Truck className="w-3.5 h-3.5" />
                 </div>
                 <div className="flex-1">
-                  <span className="font-medium text-cocoa-800 block">{t.confirmation.stepDelivery}</span>
+                  <span className="font-medium text-cocoa-800 block">Siap Diambil / Dikirimkan</span>
                 </div>
               </div>
             </div>
@@ -358,18 +359,26 @@ export default function OrderConfirmationModal({
           {/* Action Buttons */}
           <div className="space-y-2.5 pt-1">
             <a
+              href={`/pesanan/${activeOrder.public_token || activeOrder.order_number}`}
+              className="w-full py-3.5 px-6 rounded-2xl bg-cocoa-800 text-cream-100 font-bold hover:bg-cocoa-900 transition-all shadow-md flex items-center justify-center gap-2 text-xs"
+            >
+              <Truck className="w-4 h-4 text-caramel-400" />
+              <span>Buka Halaman Pelacakan Digital</span>
+            </a>
+
+            <a
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full py-4 px-6 rounded-2xl bg-[#25D366] text-white font-bold hover:bg-[#20BE5C] transition-all shadow-md flex items-center justify-center gap-2.5 text-sm"
+              className="w-full py-3.5 px-6 rounded-2xl bg-[#25D366] text-white font-bold hover:bg-[#20BE5C] transition-all shadow-sm flex items-center justify-center gap-2.5 text-xs"
             >
-              <MessageCircle className="w-5 h-5" />
+              <MessageCircle className="w-4 h-4" />
               <span>{t.confirmation.continueWa}</span>
             </a>
 
             <button
               onClick={handleClose}
-              className="w-full py-3 rounded-xl border border-oat-300 text-cocoa-800 font-medium hover:bg-oat-100 transition-colors text-xs"
+              className="w-full py-2.5 rounded-xl border border-oat-300 text-cocoa-800 font-medium hover:bg-oat-100 transition-colors text-xs"
             >
               {t.confirmation.closeBtn}
             </button>

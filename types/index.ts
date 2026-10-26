@@ -153,6 +153,8 @@ export interface Order {
   payment_status: PaymentStatus;
   internal_notes: string;
   cancellation_reason: string;
+  idempotency_key?: string;
+  public_token?: string;
   created_at: string;
   updated_at: string;
   items?: OrderItem[];

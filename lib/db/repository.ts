@@ -933,6 +933,8 @@ export async function getOrders(filters?: {
       payment_status: o.payment_status,
       internal_notes: o.internal_notes || '',
       cancellation_reason: o.cancellation_reason || '',
+      idempotency_key: o.idempotency_key || undefined,
+      public_token: o.public_token || undefined,
       created_at: o.created_at,
       updated_at: o.updated_at,
       items,
@@ -942,9 +944,11 @@ export async function getOrders(filters?: {
   return { orders, total };
 }
 
-export async function getOrder(idOrNumber: string): Promise<Order | null> {
+export async function getOrder(idOrNumberOrToken: string): Promise<Order | null> {
   const db = getSQLiteDb();
-  const o = db.prepare('SELECT * FROM orders WHERE id = ? OR order_number = ?').get(idOrNumber, idOrNumber) as any;
+  const o = db
+    .prepare('SELECT * FROM orders WHERE id = ? OR order_number = ? OR public_token = ?')
+    .get(idOrNumberOrToken, idOrNumberOrToken, idOrNumberOrToken) as any;
   if (!o) return null;
 
   const rawItems = db.prepare('SELECT * FROM order_items WHERE order_id = ? ORDER BY created_at ASC').all(o.id) as any[];
@@ -981,6 +985,8 @@ export async function getOrder(idOrNumber: string): Promise<Order | null> {
     payment_status: o.payment_status,
     internal_notes: o.internal_notes || '',
     cancellation_reason: o.cancellation_reason || '',
+    idempotency_key: o.idempotency_key || undefined,
+    public_token: o.public_token || undefined,
     created_at: o.created_at,
     updated_at: o.updated_at,
     items,

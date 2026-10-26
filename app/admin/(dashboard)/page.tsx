@@ -10,6 +10,7 @@ import {
   Sparkles,
   ArrowRight,
   ExternalLink,
+  ChefHat,
 } from 'lucide-react';
 import { getDashboardOverview, getBusinessSettings } from '@/lib/db/repository';
 import { formatRupiah, formatIndonesianDateTime } from '@/lib/utils';
@@ -74,6 +75,13 @@ export default async function AdminOverviewPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <Link
+            href="/admin/produksi"
+            className="px-4 py-2.5 rounded-xl border border-oat-300 bg-white hover:bg-oat-100 text-cocoa-800 text-xs font-semibold transition-colors shadow-xs flex items-center gap-2"
+          >
+            <ChefHat className="w-4 h-4 text-caramel-600" />
+            <span>Lembar Produksi Dapur</span>
+          </Link>
           <Link
             href="/admin/pesanan"
             className="px-4 py-2.5 rounded-xl bg-cocoa-800 text-cream-100 text-xs font-semibold hover:bg-cocoa-900 transition-colors shadow-sm flex items-center gap-2"

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   Search,
   Filter,
@@ -18,6 +19,7 @@ import {
   FileText,
   X,
   Loader2,
+  ChefHat,
 } from 'lucide-react';
 import { Order, OrderStatus, PaymentStatus } from '@/types';
 import { formatRupiah, formatIndonesianDate, formatIndonesianDateTime, formatWhatsAppNumber } from '@/lib/utils';
@@ -238,6 +240,14 @@ export default function AdminPesananPage() {
             />
             <span>{isLiveSync ? '🟢 Live Kitchen (10s)' : '⚪ Live Kitchen (Off)'}</span>
           </button>
+
+          <Link
+            href="/admin/produksi"
+            className="px-4 py-2.5 rounded-xl bg-cocoa-800 hover:bg-cocoa-900 text-cream-100 text-xs font-semibold flex items-center gap-2 shadow-sm transition-colors"
+          >
+            <ChefHat className="w-4 h-4 text-caramel-400" />
+            <span>Lembar Produksi Dapur</span>
+          </Link>
 
           <button
             onClick={handleExportCSV}

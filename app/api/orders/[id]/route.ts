@@ -30,11 +30,16 @@ export async function GET(
     const phoneSuffix = url.searchParams.get('phone_suffix');
 
     const cleanPhone = (order.customer_whatsapp || '').replace(/\D/g, '');
-    const isTokenMatch = token && (order.id === token || order.order_number === token);
-    const isPhoneMatch = phoneSuffix && cleanPhone.endsWith(phoneSuffix);
+    const isTokenMatch = Boolean(token && order.public_token && order.public_token === token);
+    const isPhoneMatch = Boolean(phoneSuffix && phoneSuffix.trim().length >= 4 && cleanPhone.endsWith(phoneSuffix.trim()));
 
-    if (isTokenMatch || isPhoneMatch) {
-      // Redact sensitive personal identifiable information (PII) for public/guest tracking
+    if (isTokenMatch) {
+      // Direct access via secure unguessable 128-bit public token (ACC-04, SEC-07)
+      return NextResponse.json({ success: true, data: order, access_method: 'token' });
+    }
+
+    if (isPhoneMatch) {
+      // Redact sensitive personal identifiable information (PII) for public phone lookup
       const maskedName = order.customer_name
         ? order.customer_name.charAt(0) + '***'
         : 'Pelanggan';
@@ -42,7 +47,7 @@ export async function GET(
         ? cleanPhone.slice(0, 3) + '****' + cleanPhone.slice(-4)
         : '****';
       const maskedAddress = order.delivery_address
-        ? 'Area Pengiriman Terverifikasi (Detail disamarkan untuk privasi)'
+        ? 'Area Pengiriman Terverifikasi (Detail disamarkan untuk privasi tamu)'
         : undefined;
 
       const safeOrder = {
@@ -52,7 +57,7 @@ export async function GET(
         delivery_address: maskedAddress,
       };
 
-      return NextResponse.json({ success: true, data: safeOrder, is_redacted: true });
+      return NextResponse.json({ success: true, data: safeOrder, is_redacted: true, access_method: 'phone_suffix' });
     }
 
     // Default deny: Do not leak existence or details of order to arbitrary users

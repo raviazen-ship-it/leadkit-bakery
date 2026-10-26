@@ -29,6 +29,7 @@ export default function Navbar({ settings }: NavbarProps) {
   const navLinks = [
     { name: t.nav.home, href: '/' },
     { name: t.nav.menu, href: '/produk' },
+    { name: language === 'en' ? 'Track Order' : 'Lacak Pesanan', href: '/pesanan' },
     { name: t.nav.contact, href: '/kontak' },
   ];
 

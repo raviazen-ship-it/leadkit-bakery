@@ -15,6 +15,7 @@ import {
   X,
   ExternalLink,
   Database,
+  ChefHat,
 } from 'lucide-react';
 
 export default function AdminSidebar() {
@@ -26,6 +27,7 @@ export default function AdminSidebar() {
   const navItems = [
     { name: 'Ringkasan', href: '/admin', icon: LayoutDashboard },
     { name: 'Kelola Pesanan', href: '/admin/pesanan', icon: ShoppingBag },
+    { name: 'Lembar Produksi', href: '/admin/produksi', icon: ChefHat },
     { name: 'Kelola Produk', href: '/admin/produk', icon: Package },
     { name: 'Tampilan Website', href: '/admin/tampilan', icon: Palette },
     { name: 'Pengaturan Bisnis', href: '/admin/pengaturan', icon: Settings },

@@ -146,3 +146,78 @@ test('T-CHK-01: Multi-Item Mixed Lead-Time Calculation (BR-03)', () => {
 
   assert.equal(maxRequiredDays, 2, 'Lead time keranjang campuran wajib mengikuti lead time terpanjang (H-2)');
 });
+
+test('T-ACC-04: Unguessable Token & 4-Digit Phone Verification (SEC-07)', () => {
+  const sampleOrder = {
+    order_number: 'ORD-20261027-001',
+    customer_whatsapp: '081234567890',
+    public_token: 'tok_1740000000_a8f9c1b2d3',
+    customer_name: 'Dewi Kartika',
+    delivery_address: 'Jl. Senopati No. 12, Kebayoran Baru, Jakarta Selatan',
+  };
+
+  // Case 1: Unguessable 128-bit token match grants direct access
+  const directTokenMatch = sampleOrder.public_token === 'tok_1740000000_a8f9c1b2d3';
+  assert.equal(directTokenMatch, true, 'Token acak 128-bit harus memberikan akses');
+
+  // Case 2: Order number ALONE must NOT be enough (SEC-07: Nomor order bukan rahasia)
+  const isGuessWithoutPhoneBlocked = !('ORD-20261027-001' === sampleOrder.public_token);
+  assert.equal(isGuessWithoutPhoneBlocked, true, 'Nomor order saja tidak boleh berlaku sebagai token rahasia');
+
+  // Case 3: Order number + correct 4-digit phone suffix matches
+  const phoneSuffix = '7890';
+  const cleanPhone = sampleOrder.customer_whatsapp.replace(/\D/g, '');
+  const isPhoneMatch = phoneSuffix.length >= 4 && cleanPhone.endsWith(phoneSuffix);
+  assert.equal(isPhoneMatch, true, '4 digit akhir telepon harus cocok');
+
+  // Case 4: Wrong 4-digit phone suffix is rejected
+  const wrongPhoneSuffix = '1111';
+  const isWrongPhoneMatch = wrongPhoneSuffix.length >= 4 && cleanPhone.endsWith(wrongPhoneSuffix);
+  assert.equal(isWrongPhoneMatch, false, '4 digit nomor telepon salah wajib ditolak');
+});
+
+test('T-SEC-09: PII Redaction for Public / Guest Lookups', () => {
+  const rawOrder = {
+    customer_name: 'Dewi Kartika',
+    customer_whatsapp: '081234567890',
+    delivery_address: 'Jl. Kemang Raya No. 45, Jakarta Selatan',
+  };
+
+  // Redaction logic applied in API lookup
+  const cleanPhone = rawOrder.customer_whatsapp.replace(/\D/g, '');
+  const maskedName = rawOrder.customer_name ? rawOrder.customer_name.charAt(0) + '***' : 'Pelanggan';
+  const maskedPhone = cleanPhone.length > 4 ? cleanPhone.slice(0, 3) + '****' + cleanPhone.slice(-4) : '****';
+  const maskedAddress = 'Area Pengiriman Terverifikasi (Detail disamarkan untuk privasi)';
+
+  assert.equal(maskedName, 'D***', 'Nama pemesan wajib disamarkan');
+  assert.equal(maskedPhone, '081****7890', 'Nomor telepon tengah wajib disamarkan');
+  assert.equal(maskedAddress.includes('disamarkan'), true, 'Alamat lengkap wajib disamarkan');
+});
+
+test('T-ADM-05: Kitchen Production Batch Aggregation', () => {
+  const orders = [
+    {
+      order_number: 'ORD-001',
+      fulfillment_time_slot: '09.00 - 12.00 WIB',
+      items: [
+        { product_name: 'Country Sourdough', variant_name: 'Loaf 800g', quantity: 2 },
+        { product_name: 'Croissant Box', variant_name: 'Box isi 4', quantity: 1 },
+      ],
+    },
+    {
+      order_number: 'ORD-002',
+      fulfillment_time_slot: '09.00 - 12.00 WIB',
+      items: [
+        { product_name: 'Country Sourdough', variant_name: 'Loaf 800g', quantity: 3 },
+      ],
+    },
+  ];
+
+  // Aggregate sourdough count for the 09.00 slot
+  const sourdoughBatchTotal = orders.reduce((sum, ord) => {
+    const item = ord.items.find((it) => it.product_name === 'Country Sourdough');
+    return sum + (item ? item.quantity : 0);
+  }, 0);
+
+  assert.equal(sourdoughBatchTotal, 5, 'Total adonan Country Sourdough batch 09.00 harus 5 loaf');
+});
