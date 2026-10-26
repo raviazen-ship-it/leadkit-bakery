@@ -136,6 +136,7 @@ export interface OrderItem {
 export interface Order {
   id: string;
   order_number: string;
+  customer_id?: string;
   customer_name: string;
   customer_whatsapp: string;
   order_type: 'pickup' | 'delivery';
