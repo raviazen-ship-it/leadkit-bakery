@@ -64,25 +64,25 @@ export default function HomePageClient({
       <Navbar settings={settings} />
 
       <main className="flex-1">
-        {/* TOP DEMONSTRATION ACCREDITATION BAR FOR PROSPECTS & CLIENTS */}
-        <section className="bg-gradient-to-r from-cocoa-900 via-cocoa-800 to-caramel-900 text-cream-100 py-2.5 px-4 text-xs border-b border-caramel-500/30">
+        {/* TOP STORE VALUE PROPOSITION BAR */}
+        <section className="bg-cocoa-900 text-cream-100 py-2 px-4 text-xs border-b border-caramel-500/20">
           <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="font-semibold text-caramel-300">
-                {language === 'en' ? 'Live Showcase Demonstration:' : 'Demonstrasi Live Toko Online:'}
+              <span className="w-2 h-2 rounded-full bg-caramel-400" />
+              <span className="font-medium text-caramel-200">
+                {language === 'en' ? 'Artisan Bakery & Catering Senopati:' : 'Artisan Bakery & Catering Senopati:'}
               </span>
-              <span className="text-cream-100/90 font-light hidden sm:inline">
+              <span className="text-cream-100/80 font-light hidden sm:inline">
                 {language === 'en'
-                  ? 'Bilingual (EN/ID) • Real-Time Currency Engine • QRIS, Transfer Bank & Online Gateway • Automated Kitchen Lead-Times'
-                  : 'Bilingual (EN/ID) • Konversi Mata Uang (IDR/USD) • QRIS, Transfer Bank & Payment Gateway • Kalkulasi Otomatis Pre-Order'}
+                  ? 'Natural Sourdough • Pure Butter Pastries • Custom Event Catering • Pick-up & Delivery Jakarta'
+                  : 'Sourdough Alami • Pure French Butter • Katering Nasi Kotak Acara • Pengantaran Terjadwal Jaksel, Jakpus & Tangsel'}
               </span>
             </div>
             <Link
               href="/produk"
-              className="inline-flex items-center gap-1 text-[11px] font-bold text-caramel-300 hover:text-white underline underline-offset-2 ml-auto"
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-caramel-300 hover:text-white underline underline-offset-2 ml-auto"
             >
-              <span>{language === 'en' ? 'Try Interactive Order Flow →' : 'Uji Coba Alur Order →'}</span>
+              <span>{language === 'en' ? 'Order Pre-order Online →' : 'Pesan Pre-order Online →'}</span>
             </Link>
           </div>
         </section>
@@ -432,7 +432,7 @@ export default function HomePageClient({
                     ))}
                   </div>
                   <p className="text-xs sm:text-sm text-espresso-900/80 italic font-serif leading-relaxed">
-                    &quot;The Valrhona chocolate cake was the absolute centerpiece of our corporate anniversary. The online checkout with seamless QRIS &amp; Card took under a minute.&quot;
+                    &quot;Valrhona chocolate cake-nya benar-benar bintang di acara syukuran keluarga kami. Cokelatnya premium dan tidak eneg, semua tamu memuji rasanya.&quot;
                   </p>
                 </div>
                 <div className="border-t border-oat-200 pt-3 flex items-center justify-between text-xs">
@@ -449,7 +449,7 @@ export default function HomePageClient({
                     ))}
                   </div>
                   <p className="text-xs sm:text-sm text-espresso-900/80 italic font-serif leading-relaxed">
-                    &quot;Best open-crumb sourdough we have had outside Paris. You can instantly taste the French Normandy butter and patience in fermentation.&quot;
+                    &quot;Tekstur sourdough dan pastry-nya luar biasa renyah di luar dengan rongga yang lembut sempurna. Sangat terasa kualitas butter dan proses fermentasinya.&quot;
                   </p>
                 </div>
                 <div className="border-t border-oat-200 pt-3 flex items-center justify-between text-xs">
@@ -466,12 +466,12 @@ export default function HomePageClient({
                     ))}
                   </div>
                   <p className="text-xs sm:text-sm text-espresso-900/80 italic font-serif leading-relaxed">
-                    &quot;The automated pre-order date selection is brilliant. Arrived in pristine refrigerated packaging with greeting cards included.&quot;
+                    &quot;Pilihan tanggal dan slot waktu pengantaran sangat praktis. Paket pesanan sampai dalam kondisi terawat, tepat waktu, dan packaging sangat elegan.&quot;
                   </p>
                 </div>
                 <div className="border-t border-oat-200 pt-3 flex items-center justify-between text-xs">
                   <span className="font-bold text-cocoa-900">Claire D.</span>
-                  <span className="text-espresso-900/50">Verified Order</span>
+                  <span className="text-espresso-900/50">Pelanggan Setia</span>
                 </div>
               </div>
             </div>

@@ -160,7 +160,7 @@ export default function PublicOrderTrackingPage() {
                 className="w-full px-4 py-2.5 rounded-xl border border-oat-300 bg-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-caramel-500"
               />
               <span className="text-[11px] text-espresso-900/60 block mt-1">
-                Untuk melindungi privasi data pemesan dari pihak lain (ACC-04, SEC-07).
+                Untuk melindungi privasi data pesanan Anda dari akses pihak lain.
               </span>
             </div>
 
@@ -309,7 +309,7 @@ export default function PublicOrderTrackingPage() {
                 )}
                 {isRedacted && (
                   <span className="text-[10px] text-espresso-900/60 block italic">
-                    * Sebagian data pribadi disamarkan untuk kepatuhan privasi (SEC-09).
+                    * Sebagian nomor telepon dan detail pribadi disamarkan untuk perlindungan privasi publik.
                   </span>
                 )}
               </div>
