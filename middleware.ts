@@ -6,7 +6,17 @@ export function middleware(request: NextRequest) {
   const response = NextResponse.next();
 
   // 1. Injeksi Header Keamanan Standar (SEC-04)
-  response.headers.set('X-Frame-Options', 'DENY');
+  // Rute admin tetap diproteksi penuh dari framing (X-Frame-Options: DENY).
+  // Toko publik diizinkan di-embed oleh portfolio kanonik Ray Raharja dan localhost.
+  const isAdminPath = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
+  if (isAdminPath) {
+    response.headers.set('X-Frame-Options', 'DENY');
+  } else {
+    response.headers.set(
+      'Content-Security-Policy',
+      "frame-ancestors 'self' https://ray-raharja-portfolio.vercel.app http://localhost:* https://*.vercel.app;"
+    );
+  }
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
