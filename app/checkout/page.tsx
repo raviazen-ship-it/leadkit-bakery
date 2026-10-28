@@ -118,6 +118,12 @@ export default function StandaloneCheckoutPage() {
       setLoading(true);
       setErrorMsg(null);
 
+      const itemCustomNotes = items
+        .filter((i) => i.customNote)
+        .map((i) => `[Ucapan ${i.product.name}: "${i.customNote}"]`)
+        .join(' ');
+      const mergedNotes = [customerNotes?.trim(), itemCustomNotes].filter(Boolean).join(' ');
+
       const payload = {
         customer_name: customerName,
         customer_whatsapp: customerWhatsapp,
@@ -126,8 +132,8 @@ export default function StandaloneCheckoutPage() {
         fulfillment_date: fulfillmentDate,
         fulfillment_time_slot: timeSlot,
         customer_notes: transactionMeta
-          ? `${customerNotes || ''} [TXN_${transactionMeta.method}_${transactionMeta.ref}]`.trim()
-          : customerNotes,
+          ? `${mergedNotes} [SIMULASI_TXN_${transactionMeta.method}_${transactionMeta.ref}]`.trim()
+          : mergedNotes,
         payment_method_id: paymentMethodId,
         payment_status: paymentStatus,
         items: items.map((i) => ({
@@ -192,6 +198,14 @@ export default function StandaloneCheckoutPage() {
       <Navbar />
 
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full space-y-8">
+        {/* Simulation Notice Banner */}
+        <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 text-xs flex items-center gap-2.5">
+          <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
+          <span>
+            <strong>Demo - data dan transaksi bersifat simulasi.</strong> Jangan memasukkan data pembayaran sensitif atau melakukan transfer nyata.
+          </span>
+        </div>
+
         {/* Breadcrumb */}
         <div className="text-xs text-espresso-900/60 flex items-center gap-1.5">
           <Link href="/" className="hover:text-cocoa-900 transition-colors">

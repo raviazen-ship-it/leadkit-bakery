@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { getOrder, getBusinessSettings } from '@/lib/db/repository';
+import { getOrderByPublicToken, getBusinessSettings } from '@/lib/db/repository';
 import { formatRupiah, formatIndonesianDate, formatIndonesianDateTime } from '@/lib/utils';
 
 export const revalidate = 0;
@@ -33,8 +33,8 @@ export default async function DirectOrderTrackingPage({ params }: TrackingPagePr
   const { token } = await params;
   const settings = await getBusinessSettings();
 
-  // Retrieve order by public 128-bit random token or ID
-  const order = await getOrder(token);
+  // Retrieve order strictly by non-enumerable 128-bit random public token
+  const order = await getOrderByPublicToken(token);
 
   if (!order) {
     notFound();
@@ -85,6 +85,14 @@ export default async function DirectOrderTrackingPage({ params }: TrackingPagePr
             <ChevronLeft className="w-4 h-4" />
             <span>Cari Pesanan Lain</span>
           </Link>
+        </div>
+
+        {/* Simulation Notice Banner */}
+        <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 text-xs flex items-center gap-2.5">
+          <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
+          <span>
+            <strong>Demo - data dan transaksi bersifat simulasi.</strong> Halaman pelacakan ini menggunakan token privat acak dan tidak memproses pembayaran nyata.
+          </span>
         </div>
 
         {/* Tracking Card */}

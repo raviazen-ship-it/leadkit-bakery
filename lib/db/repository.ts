@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { getSQLiteDb } from './sqlite';
 import type {
   BusinessSettings,
@@ -790,12 +791,13 @@ export async function createOrder(
     if (paymentMethod) paymentMethodName = paymentMethod.name;
   }
 
-  const isAutoPaid = input.payment_status === 'Dibayar';
-  const initialPaymentStatus = isAutoPaid ? 'Dibayar' : (input.payment_status || 'Belum Dibayar');
+  // Never trust client-supplied 'Dibayar' without server-side payment gateway webhook verification
+  const initialPaymentStatus: PaymentStatus =
+    input.payment_status === 'Dibayar' ? 'Menunggu Verifikasi' : 'Belum Dibayar';
 
-  const orderId = `ord_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  const orderId = `ord_${Date.now()}_${crypto.randomBytes(6).toString('hex')}`;
   const orderNumber = generateOrderNumber();
-  const publicToken = `tok_${Date.now()}_${Math.random().toString(36).substring(2, 12)}`;
+  const publicToken = `tok_${crypto.randomBytes(16).toString('hex')}`;
   const now = new Date().toISOString();
 
   // Save order to SQLite
@@ -956,6 +958,19 @@ export async function getOrders(filters?: {
   });
 
   return { orders, total };
+}
+
+export async function getOrderByPublicToken(publicToken: string): Promise<Order | null> {
+  const cleanToken = (publicToken || '').trim();
+  if (!cleanToken || cleanToken.length < 16 || !cleanToken.startsWith('tok_')) {
+    return null;
+  }
+  const db = getSQLiteDb();
+  const o = db
+    .prepare('SELECT * FROM orders WHERE public_token = ?')
+    .get(cleanToken) as any;
+  if (!o) return null;
+  return getOrder(o.id);
 }
 
 export async function getOrder(idOrNumberOrToken: string): Promise<Order | null> {
@@ -1277,17 +1292,28 @@ export async function updateCustomerProfile(
 
 export async function getCustomerOrders(customerId: string, phone?: string): Promise<Order[]> {
   const db = getSQLiteDb();
-  let sql = 'SELECT * FROM orders WHERE 1=1';
+  const cleanCustomerId = (customerId || '').trim();
+  const cleanPhone = (phone || '').trim().replace(/\D/g, '');
+
+  const conditions: string[] = [];
   const params: any[] = [];
 
-  if (phone && phone.trim()) {
-    const cleanPhone = phone.trim().replace(/\D/g, '');
-    const partialPhone = cleanPhone.slice(-8); // match last 8 digits
-    sql += ' AND (customer_whatsapp LIKE ? OR customer_whatsapp = ?)';
-    params.push(`%${partialPhone}%`, phone.trim());
+  if (cleanCustomerId) {
+    conditions.push('customer_id = ?');
+    params.push(cleanCustomerId);
   }
 
-  sql += ' ORDER BY created_at DESC LIMIT 50';
+  if (cleanPhone.length >= 8) {
+    const partialPhone = cleanPhone.slice(-8);
+    conditions.push('(customer_whatsapp LIKE ? OR customer_whatsapp = ?)');
+    params.push(`%${partialPhone}%`, (phone || '').trim());
+  }
+
+  if (conditions.length === 0) {
+    return [];
+  }
+
+  const sql = `SELECT * FROM orders WHERE (${conditions.join(' OR ')}) ORDER BY created_at DESC LIMIT 50`;
 
   const orderRows = db.prepare(sql).all(...params) as any[];
   const itemStmt = db.prepare('SELECT * FROM order_items WHERE order_id = ? ORDER BY created_at ASC');

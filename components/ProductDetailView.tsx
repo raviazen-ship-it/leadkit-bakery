@@ -71,13 +71,13 @@ export default function ProductDetailView({
     product.name.toLowerCase().includes('cake');
 
   const handleAddToCart = () => {
-    addItem(product, selectedVariant, quantity);
+    addItem(product, selectedVariant, quantity, customNote);
     setAddedSuccess(true);
     setTimeout(() => setAddedSuccess(false), 2500);
   };
 
   const handleBuyNow = () => {
-    addItem(product, selectedVariant, quantity);
+    addItem(product, selectedVariant, quantity, customNote);
     openCheckout();
   };
 

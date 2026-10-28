@@ -23,7 +23,8 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files (do not commit actual secret envs)
-.env*.local
+.env*
+!.env.example
 
 # vercel
 .vercel

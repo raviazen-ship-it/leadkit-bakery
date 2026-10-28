@@ -185,4 +185,5 @@ export interface CartItem {
   product: Product;
   selectedVariant: ProductVariant;
   quantity: number;
+  customNote?: string;
 }

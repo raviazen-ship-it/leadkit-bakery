@@ -5,7 +5,7 @@ import { Product, ProductVariant, CartItem, Order } from '@/types';
 
 interface CartContextType {
   items: CartItem[];
-  addItem: (product: Product, variant: ProductVariant, quantity?: number) => void;
+  addItem: (product: Product, variant: ProductVariant, quantity?: number, customNote?: string) => void;
   removeItem: (productId: string, variantId: string) => void;
   updateQuantity: (productId: string, variantId: string, quantity: number) => void;
   clearCart: () => void;
@@ -57,7 +57,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, [items, isLoaded]);
 
-  const addItem = (product: Product, variant: ProductVariant, quantity: number = 1) => {
+  const addItem = (product: Product, variant: ProductVariant, quantity: number = 1, customNote?: string) => {
+    const cleanNote = customNote?.trim() || undefined;
     setItems((prev) => {
       const existingIdx = prev.findIndex(
         (i) => i.product.id === product.id && i.selectedVariant.id === variant.id
@@ -68,11 +69,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         next[existingIdx] = {
           ...next[existingIdx],
           quantity: next[existingIdx].quantity + quantity,
+          customNote: cleanNote || next[existingIdx].customNote,
         };
         return next;
       }
 
-      return [...prev, { product, selectedVariant: variant, quantity }];
+      return [...prev, { product, selectedVariant: variant, quantity, customNote: cleanNote }];
     });
     setIsCartOpen(true);
   };

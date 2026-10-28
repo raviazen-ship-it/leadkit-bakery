@@ -62,11 +62,11 @@ export default function Navbar({ settings }: NavbarProps) {
             <div className="w-10 h-10 rounded-full bg-caramel-500 text-cream-100 flex items-center justify-center shadow-sm group-hover:bg-caramel-600 transition-colors">
               <Store className="w-5 h-5" />
             </div>
-            <div>
-              <span className="font-serif text-2xl font-bold tracking-tight text-cocoa-800 block leading-tight">
+            <div className="min-w-0">
+              <span className="font-serif text-lg sm:text-2xl font-bold tracking-tight text-cocoa-800 block leading-tight truncate">
                 {storeName}
               </span>
-              <span className="text-[10px] tracking-widest uppercase font-semibold text-sage-600 block">
+              <span className="text-[9px] sm:text-[10px] tracking-widest uppercase font-semibold text-sage-600 hidden sm:block">
                 Artisan Bakery & Catering
               </span>
             </div>

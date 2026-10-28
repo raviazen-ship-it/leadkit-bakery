@@ -92,10 +92,10 @@ export default function PaymentGatewayModal({
             </div>
             <div>
               <h3 className="font-serif text-lg font-bold">
-                Pembayaran Resmi Toko
+                Simulasi Pembayaran Toko (Demo)
               </h3>
               <p className="text-[11px] text-cream-200/80">
-                Aura Artisan Bakery & Catering · IDR Secure Gateway
+                Demo - data dan transaksi bersifat simulasi (bukan transaksi nyata)
               </p>
             </div>
           </div>
